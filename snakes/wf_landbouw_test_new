@@ -1,0 +1,166 @@
+from pathlib import Path
+# from itertools import product
+# from utils import get_prijstool_option_runs
+
+#basis mappen
+basefolder = Path(r'p:\archivedprojects\11202240-kpp-dp-zoetwater\NWM_BP2018_en_historie\2018_BP2018_productieomgeving')
+agricom_folder = basefolder / 'Agricom_runZ1/output_AGRICOM'
+
+localfolder = Path(r'P:\doorontwikkeling-dpzw-effectmodule\Landbouw\Data')
+inputfolder = localfolder / 'Invoer'
+interimfolder = localfolder / 'Interim_new'
+outputfolder = localfolder / 'Output_new'
+
+eff_landbouw_folder = Path(rf'P:\\archivedprojects\\11210039-dpzw-effectmodules\\Landbouw\\data')
+
+ref_scenario = 'REF2017BP18'
+subscenario = ref_scenario
+scenario = ref_scenario
+regionname = 'NWM22'
+
+   
+# [prepare_median_input]
+# [input]
+prepare_median_input_pot_data_fn = inputfolder / ref_scenario / 'PotYld.nc'
+prepare_median_input_act_data_fn = inputfolder / ref_scenario / 'ActYld.nc'
+prepare_median_input_path_DPZW_regio = r'P:\\archivedprojects\\11210039-dpzw-effectmodules\_DATA\Basisdata\gis_data\shp_Zoetwaterregios\ZW_deelregios.shp'
+prepare_median_input_lgn_fn = agricom_folder / f'{ref_scenario}/grids/landgebruik.asc'
+# [output]
+prepare_median_input_act_med_fn = interimfolder / ref_scenario / 'median_masked_ActYld_v12.asc'
+prepare_median_input_derv_med_fn = interimfolder / ref_scenario / 'median_masked_derv_v12.asc'
+# [script]
+prepare_median_input_script = '../src/Prepare_input_data.py'
+
+# [run_prijstool_preprocessing]
+# [input]
+run_prijstool_preprocessing_sub_crops_fn = eff_landbouw_folder / rf'2-interim/Split_crop_regions_{regionname}.csv'
+run_prijstool_preprocessing_landgebruik_ref_fn = agricom_folder / ref_scenario / 'grids/landgebruik.asc'
+run_prijstool_preprocessing_areaalasc_ref_fn = agricom_folder / ref_scenario / 'grids/areaal.asc'
+run_prijstool_preprocessing_regios250_fn = eff_landbouw_folder / rf'1-external/regios_{regionname}.asc'
+run_prijstool_preprocessing_masking_fn = eff_landbouw_folder / r'1-external/mask_met_wad.asc'
+run_prijstool_preprocessing_potASC_combi_fn = inputfolder / scenario / 'PotYld.nc'
+run_prijstool_preprocessing_act_dry_ASC_combi_fn = inputfolder / scenario / 'ActYld.nc'
+run_prijstool_preprocessing_arbdASC_fn = inputfolder / scenario / 'arbeidskosten.nc'
+run_prijstool_preprocessing_enrgASC_fn = inputfolder / scenario / 'energiekosten.nc'
+run_prijstool_preprocessing_landgebruik_fn = agricom_folder / scenario / 'grids/landgebruik.asc'
+run_prijstool_preprocessing_areaalasc_fn = agricom_folder / scenario / 'grids/areaal.asc'
+# [param]
+data_options = 'combiderv'
+calc = 'optdervderv_ActMed_new'
+# [output]
+run_prijstool_preprocessing_cropdata_fn = interimfolder / scenario / f'{scenario}_v12_new.csv'
+run_prijstool_preprocessing_cropdata_split_fn = interimfolder / scenario / f'{subscenario}_split_v12_new.csv'
+# [script]
+run_prijstool_preprocessing_script = '../src/prijstool_preprocessing.py'
+
+# [run_prijstool]
+# [input]
+run_prijstool_elasticity_fn = eff_landbouw_folder / r'1-external/prijstool_invoer_elasticity.csv'
+run_prijstool_crop_prices_fn = eff_landbouw_folder / rf'2-interim/Crop_prices_regions_{regionname}.csv'
+run_prijstool_cropdata_split_ref_fn = interimfolder / ref_scenario / f'{ref_scenario}_split_v12_new.csv'
+# [output]
+run_prijstool_outnam1_fn = interimfolder / scenario / f'{subscenario}-resdroogte_v12_new.csv'
+run_prijstool_twpaynam_fn = interimfolder / scenario / f'{subscenario}-totperarea-year_v12_new.csv'
+run_prijstool_twpcyfil_fn = interimfolder / scenario / f'{subscenario}-totpercrop-year_v12_new.csv'
+run_prijstool_twpcafil_fn = interimfolder / scenario / f'{subscenario}-totpercrop-area_v12_new.csv'
+# [script]
+run_prijstool_script = '../src/Prijstool_Deltascenarios_v12_rewrite.py'
+
+# [uitsplitsing_welvaart]
+# [input]
+uitsplitsing_welvaart_ref_output_fn = interimfolder / ref_scenario / f'{ref_scenario}-resdroogte_v12_new.csv'
+# [output]
+droogterisico_fn = outputfolder / scenario / f'{subscenario}_droogterisico_new.xlsx'
+# [script]
+uitsplitsing_welvaart_script = '../src/bereken_droogterisico.py'
+
+# [risico_hoofdregio]
+# [input]
+risico_hoofdregio_subregio_fn = r'P:\\archivedprojects\\11210039-dpzw-effectmodules\_DATA\Basisdata\gis_data\shp_Zoetwaterregios\ZW_deelregios.shp'
+risico_hoofdregio_hoofdregio_fn = r'P:\\archivedprojects\\11210039-dpzw-effectmodules\_DATA\Basisdata\gis_data\shp_Zoetwaterregios\ZW_hoofdregios.shp'
+# [output]
+risico_hoofdregio_droogterisico_hoofdregios_fn = outputfolder / scenario / f'{subscenario}_droogterisico_hoofdregios_new.xlsx'
+# [script]
+risico_hoofdregio_script = '../src/aggregeer_hoofdregios.py'
+
+rule prepare_median_input:
+    input:
+        pot_data_fn = prepare_median_input_pot_data_fn,
+        act_data_fn = prepare_median_input_act_data_fn,
+        path_DPZW_regio = prepare_median_input_path_DPZW_regio,
+        lgn_fn = prepare_median_input_lgn_fn
+    output:
+        act_med_fn = prepare_median_input_act_med_fn,
+        derv_med_fn = prepare_median_input_derv_med_fn
+    script:
+        prepare_median_input_script
+
+rule run_prijstool_preprocessing:
+    input:
+        sub_crops_fn = run_prijstool_preprocessing_sub_crops_fn,
+        Yldactdry_med_combi_fn = prepare_median_input_act_med_fn,
+        Dervactdry_med_combi_fn = prepare_median_input_derv_med_fn,
+        landgebruik_ref_fn = run_prijstool_preprocessing_landgebruik_ref_fn,
+        areaalasc_ref_fn = run_prijstool_preprocessing_areaalasc_ref_fn,
+        regios250_fn = run_prijstool_preprocessing_regios250_fn,
+        masking_fn = run_prijstool_preprocessing_masking_fn,
+        potASC_combi_fn = run_prijstool_preprocessing_potASC_combi_fn,
+        act_dry_ASC_combi_fn = run_prijstool_preprocessing_act_dry_ASC_combi_fn,
+        arbdASC_fn = run_prijstool_preprocessing_arbdASC_fn,
+        enrgASC_fn = run_prijstool_preprocessing_enrgASC_fn,
+        landgebruik_fn = run_prijstool_preprocessing_landgebruik_fn,
+        areaalasc_fn = run_prijstool_preprocessing_areaalasc_fn
+    params:
+        scenario = scenario,
+        calc = calc,
+        d = data_options
+    output:
+        cropdata_fn = run_prijstool_preprocessing_cropdata_fn,
+        cropdata_split_fn = run_prijstool_preprocessing_cropdata_split_fn
+    script:
+        run_prijstool_preprocessing_script
+
+rule run_prijstool:
+    input:
+        r"C:\git_repos\effectmodule_landbouw\src\Prijstool_Deltascenarios_Class_rewrite_new_act.py",
+        elasticity_fn = run_prijstool_elasticity_fn,
+        crop_prices_fn = run_prijstool_crop_prices_fn,
+        cropdata_split_sce_fn = run_prijstool_preprocessing_cropdata_split_fn,
+        cropdata_split_ref_fn = run_prijstool_cropdata_split_ref_fn
+    params:
+        calc = calc
+    output:
+        outnam1_fn = run_prijstool_outnam1_fn,
+        twpaynam_fn = run_prijstool_twpaynam_fn,
+        twpcyfil_fn = run_prijstool_twpcyfil_fn,
+        twpcafil_fn = run_prijstool_twpcafil_fn
+    script:
+        run_prijstool_script
+
+rule bereken_droogterisico:
+    input:
+        elasticity_fn = run_prijstool_elasticity_fn,
+        crop_prices_fn = run_prijstool_crop_prices_fn,
+        cropdata_split_sce_fn = run_prijstool_preprocessing_cropdata_split_fn,
+        cropdata_split_ref_fn = run_prijstool_cropdata_split_ref_fn,
+        sce_output_fn = run_prijstool_outnam1_fn,
+    output:
+        droogterisico_fn = droogterisico_fn,
+    params:
+        calc = calc
+    script:
+        uitsplitsing_welvaart_script
+
+rule risico_hoofdregio:
+    input:
+        subregio_fn = risico_hoofdregio_subregio_fn,
+        hoofdregio_fn = risico_hoofdregio_hoofdregio_fn,
+        droogterisico_fn = droogterisico_fn
+    output:
+        droogterisico_hoofdregios_fn = risico_hoofdregio_droogterisico_hoofdregios_fn
+    script:
+        risico_hoofdregio_script
+
+rule run_test:
+    input:
+        droogterisico_hoofdregios_fn = risico_hoofdregio_droogterisico_hoofdregios_fn

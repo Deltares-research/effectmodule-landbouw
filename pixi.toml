@@ -1,0 +1,23 @@
+[workspace]
+authors = ["Teun van Woerkom <teun.vanwoerkom@deltares.nl>"]
+channels = ["conda-forge", "bioconda"]
+name = "eff_mod"
+platforms = ["win-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+imod = ">=1.0.0.post1,<2"
+snakemake = ">=9.15.0,<10"
+pandamesh = ">=0.2.3,<0.3"
+openpyxl = ">=3.1.5,<4"
+geopandas = ">=1.1.2,<2"
+mapbox_earcut = ">=1.0.3,<2"
+rioxarray = ">=0.20.0,<0.21"
+pip = ">=25.3,<26"
+ipykernel = ">=7.2.0,<8"
+imageio = ">=2.37.0,<3"
+seaborn = ">=0.13.2,<0.14"
+matplotlib = ">=3.10.8,<4"
+rasterio = ">=1.5.0,<2"
