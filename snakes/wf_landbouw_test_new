@@ -63,8 +63,6 @@ run_prijstool_twpcafil_fn = interimfolder / scenario / f'{subscenario}-totpercro
 run_prijstool_script = '../src/Prijstool_Deltascenarios.py'
 
 # [uitsplitsing_welvaart]
-# [input]
-uitsplitsing_welvaart_ref_output_fn = interimfolder / ref_scenario / f'{ref_scenario}-resdroogte_v12_new.csv'
 # [output]
 droogterisico_fn = outputfolder / scenario / f'{subscenario}_droogterisico_new.xlsx'
 # [script]
