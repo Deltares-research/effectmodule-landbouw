@@ -25,9 +25,9 @@ regio_df['Scenario'] = 'REF2017BP18'
 #calculate hoofdregios
 subregio_gdf = gpd.read_file(input_fns.subregio_fn)
 subregio_gdf['geometry'] = subregio_gdf.representative_point()
-
 hoofdregio_gdf = gpd.read_file(input_fns.hoofdregio_fn)
 
+#calculate which subregion belongs to which hoofdregio
 regio_sjoin = gpd.sjoin(subregio_gdf, hoofdregio_gdf, how = 'left', predicate = 'within')
 sub_hoofd_regio = pd.Series(regio_sjoin.regionaam.values, index = regio_sjoin.Naam.values)
 
@@ -42,7 +42,7 @@ droogte_risico_df = pd.concat([hoofdregio_droogterisico, totaal])
 droogte_risico_df /= 1E6
 droogte_risico_df.columns = ['Droogterisico (mln euro / jaar)', 'Droogterisico_T20 (mln euro)']
 droogte_risico_df.to_excel(output_fns.droogterisico_hoofdregios_fn)
-#droogte_risico_df/=1E6
+
 # %%
 # sns.barplot(data=droogte_risico_df.reset_index(), 
 #             x='Droogterisico', 

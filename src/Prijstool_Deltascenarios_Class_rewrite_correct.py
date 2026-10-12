@@ -8,8 +8,8 @@ import xarray as xr
 #%%
 class Prijstool:
     def __init__(self, 
-                 Prijstool_elasticity, 
-                 Crop_prices, 
+                 prijstool_elasticity, 
+                 crop_prices, 
                  cropdata_split_sce,
                  cropdata_split_ref,
                  params,
@@ -18,52 +18,56 @@ class Prijstool:
                  multpotyield = 1.0,
                  multredyield = 1.0,
                  Perc_prijspeil_beregening = 19.4, #3.7#19.4   # De prijzen staan nu in prijspeil 2019. We kunnen het updaten naar prijspeil 2023 door 19.4% erbij op te tellen. 
-                 Perc_prijspeil_voeding = 36.3#0 #36.3     # De prijzen staan nu in prijspeil 2016. We kunnen het updaten naar prijspeil 2023 door 36.3% erbij op te tellen.
                 ):       
                         
         self.optFixedPrice = optFixedPrice
         self.optConstElas = optConstElas
-        self.Prijstool_elasticity = Prijstool_elasticity
+        self.Prijstool_elasticity = prijstool_elasticity
+        self.crop_prices = crop_prices
         self.params = params
         self.multpotyield = multpotyield
         self.multredyield = multredyield
         self.Perc_prijspeil_beregening = Perc_prijspeil_beregening
 
-        self.cropdata_split_sce = self.create_cropdata_xr(cropdata_split_sce)
-        self.cropdata_split_ref = self.create_cropdata_xr(cropdata_split_ref)
+        self.cropdata_split_sce = self.create_cropdata_xr(cropdata_split_sce, crop_prices)
+        self.cropdata_split_ref = self.create_cropdata_xr(cropdata_split_ref, crop_prices)
 
-        self.update_crop_prices(Perc_prijspeil_voeding, Crop_prices)
+    def create_cropdata_xr(self, cropdata: pd.DataFrame, crop_prices: pd.DataFrame) -> xr.DataArray:
+        """
+        Create an xarray DataArray from the given cropdata DataFrame, adding missing regions with zeros.
 
-    def create_cropdata_xr(self, cropdata):
+        Parameters
+        ----------
+        cropdata : pd.DataFrame
+            The crop data with columns 'Crop', 'Area', 'Year', and other relevant data.
+        crop_prices : pd.DataFrame
+            The crop prices data containing 'regio_nummer' and crop price columns.
+
+        Returns
+        -------
+        xr.DataArray
+            The resulting xarray DataArray with crop data, including added missing regions filled with zeros.
+        """
         crop_name_num = pd.Series(self.Prijstool_elasticity.columns, index = self.Prijstool_elasticity.loc['nummer'])
 
-        #preprocess cropdata to xarray from csv
+        #preprocess cropdata to xarray from csv, and add names instead of numbers
         cropdata['Cropnum'] = cropdata['Crop']
         cropdata['Crop'] = cropdata['Crop'].map(crop_name_num)
         cropdata = cropdata.set_index(['Crop', 'Area', 'Year'])
 
-        # Add regio_13 rows with zeros
-        regio_13 = pd.MultiIndex.from_product([cropdata.index.get_level_values('Crop').unique(), 
-                                            [13.0], 
-                                            cropdata.index.get_level_values('Year').unique()],
-                                            names=cropdata.index.names)
-        regio_13_df = pd.DataFrame(0.0, index=regio_13, columns=cropdata.columns)
-
-        cropdata = pd.concat([cropdata, regio_13_df]).sort_index().to_xarray().fillna(0)
+        # Add regions that dont exist with zeros
+        not_present_regions = crop_prices.regio_nummer[~crop_prices.regio_nummer.isin(cropdata.index.get_level_values('Area').unique())]
+        for region in not_present_regions:
+            add_regio = pd.MultiIndex.from_product([cropdata.index.get_level_values('Crop').unique(), 
+                                                [region], 
+                                                cropdata.index.get_level_values('Year').unique()],
+                                                names=cropdata.index.names)
+            add_regio_df = pd.DataFrame(0.0, index=add_regio, columns=cropdata.columns)
+            cropdata = pd.concat([cropdata, add_regio_df]).sort_index()
+     
+        cropdata = cropdata.to_xarray().fillna(0)
         return cropdata
 
-    def update_crop_prices(self, Perc_prijspeil_voeding, Crop_prices):
-        # Update crop_prices
-        # Columns to multiply by Perc_prijspeil_voeding
-        columns_to_multiply = ['Grasland', 'Mais', 'Aardappelen', 'Bieten', 'Granen', 'Overig', 
-                            'Boomteelt', 'Fruit', 'Bollen', 'Consumptieaardappelen', 
-                            'Fabrieksaardappel', 'Pootaardappel', 'Overig.1', 'Uien', 
-                            'Gladiool', 'Hyacint', 'Narcis', 'Tulp', 'Rest']
-        
-        self.updated_crop_prices = Crop_prices.copy()
-        # Multiply each specified column by 1.5
-        self.updated_crop_prices[columns_to_multiply] = self.updated_crop_prices[columns_to_multiply] * (1+Perc_prijspeil_voeding/100)
-    
     def run(self):
         #step 0 read input files 
         cropnum=list()
@@ -71,7 +75,7 @@ class Prijstool:
         cropnam_bool = self.Prijstool_elasticity.loc['nummer'].isin(cropnum)
         cropnam = cropnam_bool[cropnam_bool].index.tolist()
 
-        area_name_num = pd.Series(self.updated_crop_prices.regio_naam.values, index = self.updated_crop_prices.regio_nummer.values)
+        area_name_num = pd.Series(self.crop_prices.regio_naam.values, index = self.crop_prices.regio_nummer.values)
 
         # Load data for 'single' crops : Grasland, mais, bieten, granen, boomteelt, fruit
         Prijstool_elasticity_single_crops = self.Prijstool_elasticity[cropnam]
@@ -130,7 +134,7 @@ class Prijstool:
 
         droogtederving_kg_sce_per_crop = droogtederving_kg_sce.sum('Area')
 
-        base_price = self.updated_crop_prices.set_index('regio_nummer')
+        base_price = self.crop_prices.set_index('regio_nummer')
         base_price = base_price[cropnam]
         base_price = base_price.stack(0)
         base_price.index.names = ['Area', 'Crop']

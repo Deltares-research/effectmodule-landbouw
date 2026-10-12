@@ -2,20 +2,24 @@
 import pandas as pd
 from pathlib import Path        
 import numpy as np
-from Prijstool_Deltascenarios_Class_v12 import Prijstool
+from Prijstool_Deltascenarios_Class_rewrite_correct import Prijstool
 import utils
 
 # %%
-#select the year with the median act_opbrengst for each area and crop
-def get_hypothetical_median_year_data(cropdata):
+def get_hypothetical_median_year_data(cropdata: pd.DataFrame) -> pd.DataFrame:
     """
     Selects the year with the median 'act_opbrengst' for each crop and area combination.
-    
-    Parameters:
-    cropdata (pd.DataFrame): DataFrame containing crop data with columns 'Crop', 'Area', 'Year', 'act_opbrengst', and other relevant columns.
-    
-    Returns:
-    pd.DataFrame: DataFrame with the median year data for each crop and area combination.
+
+    Parameters
+    ----------
+    cropdata : pd.DataFrame
+        DataFrame containing crop data with columns 'Crop', 'Area', 'Year',
+        'act_opbrengst', and other relevant columns.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with the median year data for each crop and area combination.
     """
     # Drop the 'Scenario' column as it is not needed for median calculation
     cropdata = cropdata.drop('Scenario', axis=1)
@@ -42,18 +46,23 @@ def get_hypothetical_median_year_data(cropdata):
     
     return medyear_cropdata_df
 
-def bereken_droogterisico(prijstool_output_sce, median_data):
+def bereken_droogterisico(prijstool_output_sce: pd.DataFrame, median_data: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
     """
     Bereken droogterisico op basis van prijstool output en mediane data.
 
-    Parameters:
-    prijstool_output_sce (pd.DataFrame): Output van de prijstool voor een scenario.
-    median_data (pd.DataFrame): Mediane data van veranderingen in totale welvaart.
+    Parameters
+    ----------
+    prijstool_output_sce : pd.DataFrame
+        Output van de prijstool voor een scenario.
+    median_data : pd.DataFrame
+        Mediane data van veranderingen in totale welvaart.
 
-    Returns:
-    tuple: Een tuple met twee elementen:
-    - pd.Series: Gemiddelde verandering in totale welvaart per gewas en gebied.
-    - float: Berekend droogterisico.
+    Returns
+    -------
+    mean_W_sce : pd.Series
+        Gemiddelde verandering in totale welvaart per gewas en gebied.
+    Droogte_Risico : pd.Series
+        Berekend droogterisico per gewas en gebied.
     """
     #dit is een rare regel want er is geen andere dimensie?
     W_A_med = median_data['verandering totale welvaart'].groupby(['Crop', 'Area']).mean()
@@ -63,7 +72,20 @@ def bereken_droogterisico(prijstool_output_sce, median_data):
     Droogte_Risico = -(W_A_med - mean_W_sce)
     return mean_W_sce, Droogte_Risico
 
-def calculate_T20(damage_series: pd.Series):
+def calculate_T20(damage_series: pd.Series) -> float:
+    """
+    Bereken droogteschade van een T20 jaar.
+
+    Parameters
+    ----------
+    damage_series : pd.Series
+        Input series met de droogteschade voor de complete tijdreeks
+
+    Returns
+    -------
+    float
+        Droogteschade van een T20 jaar.
+    """
     # Sorteer de schadewaarden van klein naar groot
     sorted_damage = damage_series.sort_values(ascending=False)
     
@@ -83,19 +105,25 @@ def calculate_T20(damage_series: pd.Series):
     T20 = np.interp(20, merged['herhalingstijd'], merged['schade'])
     return T20
 
-def bereken_droogterisico_T20(prijstool_output_sce, median_data):
+def bereken_droogterisico_T20(prijstool_output_sce: pd.DataFrame, median_data: pd.DataFrame) -> tuple[pd.Series, pd.Series]:
     """
     Bereken droogterisico op basis van prijstool output en mediane data.
 
-    Parameters:
-    prijstool_output_sce (pd.DataFrame): Output van de prijstool voor een scenario.
-    median_data (pd.DataFrame): Mediane data van veranderingen in totale welvaart.
+    Parameters
+    ----------
+    prijstool_output_sce : pd.DataFrame
+        Output van de prijstool voor een scenario.
+    median_data : pd.DataFrame
+        Mediane data van veranderingen in totale welvaart.
 
-    Returns:
-    tuple: Een tuple met twee elementen:
-    - pd.Series: Gemiddelde verandering in totale welvaart per gewas en gebied.
-    - float: Berekend droogterisico.
+    Returns
+    -------
+    T20_W_sce : pd.Series
+        Gemiddelde verandering in totale welvaart per gewas en gebied voor de T20-situatie.
+    Droogte_Risico : pd.Series
+        Berekend droogterisico per gewas en gebied.
     """
+  
     #dit is een rare regel want er is geen andere dimensie?
     W_A_med = median_data['verandering totale welvaart'].groupby(['Crop', 'Area']).mean()
     
@@ -106,8 +134,8 @@ def bereken_droogterisico_T20(prijstool_output_sce, median_data):
 
 #%%
 if "snakemake" not in globals():
-    snakefile = r"P:\11211541-003-kentalleneffecten\Landbouw\011a Effectmodule Landbouw\src\workflow\wf_landbouwv9_debug"
-    snakemake = utils.read_snakemake_rule(snakefile, name="uitsplitsing_welvaart")
+    snakefile = r"C:\git_repos\effectmodule_landbouw\snakes\wf_landbouw_test_new"
+    snakemake = utils.read_snakemake_rule(snakefile, name="bereken_droogterisico")
 
 input_fns = snakemake.input
 params = snakemake.params
@@ -125,6 +153,7 @@ cropdata_split_ref = pd.read_csv(input_fns.cropdata_split_ref_fn, index_col = 0)
 
 #%%
 #calculate droogterisico voor scenario
+#select the year with the median act_opbrengst for each area and crop
 medyear_cropdata_sce = get_hypothetical_median_year_data(cropdata_split_sce)
 
 p_A_med = Prijstool(Prijstool_elasticity, 

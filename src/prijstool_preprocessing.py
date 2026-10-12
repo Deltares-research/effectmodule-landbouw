@@ -23,6 +23,7 @@ import xarray as xr
 import imod
 from pathlib import Path
 import sys
+import geopandas as gpd
 
 sys.path.append(r"C:\git_repos\effectmodule_landbouw\src")
 import utils
@@ -36,16 +37,36 @@ import utils
 # JP 200619 replacing raster-func with imod-python to open grids if AGRICOM output is in idfs.
 # the asc file is loaded as 2 dimensional array
 
+def NCPrijs(data: xr.DataArray,
+            landgebruik: xr.DataArray,
+            regio: xr.DataArray,
+            areagrid: xr.DataArray,
+            perha: bool):
+    """
+    Returns a summarized DataFrame of the input data aggregated by land use and region.
 
-def NCPrijs(data, land, regio, mask_area, areagrid, perha):
-    # data, land, regio, mask_area, areagrid, perha = potASC_combi, landgebruik, regios250, masking, areaalasc_sce,perha
+    Parameters
+    ----------
+    data : xr.DataArray
+        The input data array to be aggregated.
+    landgebruik : xr.DataArray
+        The land use array corresponding to the input data.
+    regio : xr.DataArray
+        The region array corresponding to the input data.
+    areagrid : xr.DataArray
+        The area in m2 per grid cell.
+    perha : bool
+        Boolean indication wether "data" is expressed per hectare.
+        If True, the data will be multiplied by the area in hectares per grid cell.
 
-    """data = data.fillna(0).values.astype(np.float64)
-    areagrid=imod.rasterio.open(areaalasc,pattern='{name}').fillna(-9999).values.astype(np.float64)
-    regio=imod.rasterio.open(regio,pattern='{name}').fillna(-9999).values.astype(np.float64)
-    land = imod.rasterio.open(land,pattern='{name}').fillna(-9999).values.astype(np.float64)
+    Returns
+    -------
+    sum_df : pd.DataFrame
+        The summarized DataFrame with data aggregated by land use and region.
     """
 
+
+    mask_area = regio.notnull()
     data = data * mask_area
     regio = regio * mask_area
 
@@ -57,12 +78,14 @@ def NCPrijs(data, land, regio, mask_area, areagrid, perha):
     regio.name = "regio"
     data.name = "data"
 
-    database = xr.merge([data, land, regio, areagrid], compat="override")
+    database = xr.merge([data, landgebruik, regio, areagrid], compat="override")
     database = database.where(database.landgebruik != -9999)
     # database['year'] = database.data.time.dt.year
 
     database = database.compute()
     crop_regio_sum_da = database.groupby(["landgebruik", "regio"]).sum()
+
+    #calculate yearlyd data from smaller timesteps
     if "time" in crop_regio_sum_da.dims:
         crop_regio_sum_da["yearly_data"] = (
             crop_regio_sum_da["data"].groupby(crop_regio_sum_da.time.dt.year).sum()
@@ -89,7 +112,7 @@ def NCPrijs(data, land, regio, mask_area, areagrid, perha):
 # SPLIT===============================================================================================
 
 
-def databasesplit(split_area, data):
+def databasesplit(split_area, data, attribute, header):
     #    split_area=split_df
     #    data=cropdata
     # The relevant crop that will be split are filtered from the data in xml file
@@ -192,8 +215,12 @@ areaalasc_sce = imod.rasterio.open(input_fns.areaalasc_fn).rename("areaal")
 arbdASC_sce = xr.open_dataarray(input_fns.arbdASC_fn)
 enrgASC_sce = xr.open_dataarray(input_fns.enrgASC_fn)
 
-regios250 = imod.rasterio.open(input_fns.regios250_fn)
-masking = imod.rasterio.open(input_fns.masking_fn)
+regios = gpd.read_file(input_fns.risico_subregio_fn)
+regios['Nummer'] = regios['Nummer'].astype(float)
+regios_ar = imod.prepare.rasterize(geodataframe=regios,
+                                   like = areaalasc_sce, 
+                                   column = "Nummer", 
+                                   fill=np.nan)
 
 years = np.unique(potASC_combi.time.dt.year)
 continu_years = np.arange(years.min(), years.max() + 1)
@@ -204,22 +231,18 @@ assert (
 ), f"{', '.join(missing_years.astype(str))} are not present, between {years.min()} and {years.max()}"
 
 
-# %%
-# Attribute of each part in xml, in this case consist of 'Scenario', 'Year','Crop','Area'.
-# This will be related to the column names in xml (see line 91)
-attribute = ["Scenario", "Year", "Crop", "Area"]
-
 # %%################################
 ### MAKE PRIJSTOOL INPUT #########
 #################################
 
 # Load Yield
 # MvdV 191128 added switch perha to muliply with ha per cell or not Tru for yields, Slase for costs
+#data, landgebruik, regio, areagrid, perha = potASC_combi[potASC_combi.time.dt.year.isin(years)],landgebruik_sce,regios_ar,areaalasc_sce, True
+
 pot_opbrengst = NCPrijs(
     potASC_combi[potASC_combi.time.dt.year.isin(years)],
     landgebruik_sce,
-    regios250,
-    masking,
+    regios_ar,
     areaalasc_sce,
     perha=True,
 ).rename(columns={"data": "pot_opbrengst", "Areagrid": "areaal"})
@@ -228,8 +251,7 @@ act_opbrengst = (
     NCPrijs(
         act_dry_ASC_combi[act_dry_ASC_combi.time.dt.year.isin(years)],
         landgebruik_sce,
-        regios250,
-        masking,
+        regios_ar,
         areaalasc_sce,
         perha=True,
     )
@@ -239,7 +261,7 @@ act_opbrengst = (
 
 ref_med_derving = (
     NCPrijs(
-        Ylderv_med_combi, landgebruik_ref, regios250, masking, areaalasc_ref, perha=True
+        Ylderv_med_combi, landgebruik_ref, regios_ar, areaalasc_ref, perha=True
     )
     .drop(columns=["areaal"])
     .rename(columns={"data": "ref_med_derv"})
@@ -251,8 +273,7 @@ arbeidskosten = (
     NCPrijs(
         arbdASC_sce[arbdASC_sce.time.dt.year.isin(years)],
         landgebruik_sce,
-        regios250,
-        masking,
+        regios_ar,
         areaalasc_sce,
         perha=False,
     )
@@ -265,8 +286,7 @@ energiekosten = (
     NCPrijs(
         enrgASC_sce[enrgASC_sce.time.dt.year.isin(years)],
         landgebruik_sce,
-        regios250,
-        masking,
+        regios_ar,
         areaalasc_sce,
         perha=False,
     )
@@ -280,6 +300,7 @@ cropdata = cropdata.merge(ref_med_derving, left_index=True, right_index=True)
 cropdata = cropdata.merge(arbeidskosten, left_index=True, right_index=True)
 cropdata = cropdata.merge(energiekosten, left_index=True, right_index=True)
 
+#%%
 #calculate derving given certain calculation method specified in params.calc
 if params.calc == "optdervActPot":
     cropdata["derv_opbrengst"] = cropdata["pot_opbrengst"] - cropdata["act_opbrengst"]
@@ -319,8 +340,8 @@ elif params.calc == "optdervderv_ActMed_new":
     # cropdata['schadeberekening_opbrengst'] = cropdata['act_opbrengst'] 
 
     #real
-    med_act_opbrengst = cropdata.groupby(['regio', 'landgebruik'])["act_opbrengst"].median()
-    cropdata['damage_calculation_yield'] = [med_act_opbrengst[r, l] - c for r, l, c in zip(cropdata.index.get_level_values('regio'), cropdata.index.get_level_values('landgebruik'), cropdata['derv_opbrengst'])]
+    #med_act_opbrengst = cropdata.groupby(['regio', 'landgebruik'])["act_opbrengst"].median()
+    #cropdata['damage_calculation_yield'] = [med_act_opbrengst[r, l] - c for r, l, c in zip(cropdata.index.get_level_values('regio'), cropdata.index.get_level_values('landgebruik'), cropdata['derv_opbrengst'])]
 else:
     print("no calculation method given")
 
@@ -364,7 +385,8 @@ split_df1 = split_df.copy()
 if split_df.empty:
     print("No splitting!")
 else:
-    cropdata = databasesplit(split_df, cropdata)
+    attribute = ["Scenario", "Year", "Crop", "Area"]
+    cropdata = databasesplit(split_df, cropdata, attribute, header)
 
 for crop in split_df.Crop.unique():
     cropdata.loc[cropdata.Crop == crop, ["areaal"]] = 0
