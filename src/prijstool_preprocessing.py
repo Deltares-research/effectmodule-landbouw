@@ -357,7 +357,7 @@ cropdata = cropdata[
         "act_opbrengst",
         "pot_opbrengst",
         "areaal",
-        "damage_calculation_yield",
+       # "damage_calculation_yield",
         "derv_opbrengst",
         "ref_med_derv",
         "arbeidskosten",
