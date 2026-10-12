@@ -60,7 +60,7 @@ run_prijstool_twpaynam_fn = interimfolder / scenario / f'{subscenario}-totperare
 run_prijstool_twpcyfil_fn = interimfolder / scenario / f'{subscenario}-totpercrop-year_v12_new.csv'
 run_prijstool_twpcafil_fn = interimfolder / scenario / f'{subscenario}-totpercrop-area_v12_new.csv'
 # [script]
-run_prijstool_script = '../src/Prijstool_Deltascenarios_v12_rewrite.py'
+run_prijstool_script = '../src/Prijstool_Deltascenarios.py'
 
 # [uitsplitsing_welvaart]
 # [input]
@@ -119,7 +119,7 @@ rule run_prijstool_preprocessing:
 
 rule run_prijstool:
     input:
-        r"C:\git_repos\effectmodule_landbouw\src\Prijstool_Deltascenarios_Class_rewrite_new_act.py",
+        # r"C:\git_repos\effectmodule_landbouw\src\Prijstool_Deltascenarios_Class_rewrite_new_act.py",
         elasticity_fn = run_prijstool_elasticity_fn,
         crop_prices_fn = run_prijstool_crop_prices_fn,
         cropdata_split_sce_fn = run_prijstool_preprocessing_cropdata_split_fn,
