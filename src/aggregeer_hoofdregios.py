@@ -10,7 +10,7 @@ import utils
 
 #%%
 if "snakemake" not in globals():
-    snakefile = r"C:\git_repos\effectmodule_landbouw\snakes\wf_landbouwv12_test"
+    snakefile = r"../snakes/wf_landbouwv12_test"
     snakemake = utils.read_snakemake_rule(snakefile, name="risico_hoofdregio")
 
 input_fns = snakemake.input
