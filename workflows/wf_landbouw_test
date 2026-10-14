@@ -77,6 +77,10 @@ risico_hoofdregio_droogterisico_hoofdregios_fn = outputfolder / scenario / f'{su
 # [script]
 risico_hoofdregio_script = '../src/aggregeer_hoofdregios.py'
 
+rule all:
+    input:
+        risico_hoofdregio_droogterisico_hoofdregios_fn
+
 rule prepare_median_input:
     input:
         pot_data_fn = prepare_median_input_pot_data_fn,
@@ -155,7 +159,3 @@ rule risico_hoofdregio:
         droogterisico_hoofdregios_fn = risico_hoofdregio_droogterisico_hoofdregios_fn
     script:
         risico_hoofdregio_script
-
-rule run_test:
-    input:
-        droogterisico_hoofdregios_fn = risico_hoofdregio_droogterisico_hoofdregios_fn
