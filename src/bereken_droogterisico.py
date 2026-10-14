@@ -2,7 +2,7 @@
 import pandas as pd
 from pathlib import Path        
 import numpy as np
-from Prijstool_Deltascenarios_Class_rewrite_correct import Prijstool
+from prijstool_deltascenarios_Class import Prijstool
 import utils
 
 # %%

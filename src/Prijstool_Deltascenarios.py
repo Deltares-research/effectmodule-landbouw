@@ -2,7 +2,7 @@
 import pandas as pd
 
 import utils
-from Prijstool_Deltascenarios_Class_rewrite_correct import Prijstool
+from prijstool_deltascenarios_Class import Prijstool
 
 if "snakemake" not in globals():
     snakefile = r"C:\git_repos\effectmodule_landbouw\snakes\wf_landbouw_test_new"
