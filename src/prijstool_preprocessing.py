@@ -25,8 +25,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-sys.path.append(r"C:\git_repos\effectmodule_landbouw\src")
-import utils
+# sys.path.append(r"C:\git_repos\effectmodule_landbouw\src")
+from src import utils
 
 # %%################################
 ########## FUNCTIES #############
@@ -37,11 +37,14 @@ import utils
 # JP 200619 replacing raster-func with imod-python to open grids if AGRICOM output is in idfs.
 # the asc file is loaded as 2 dimensional array
 
-def NCPrijs(data: xr.DataArray,
-            landgebruik: xr.DataArray,
-            regio: xr.DataArray,
-            areagrid: xr.DataArray,
-            perha: bool):
+
+def NCPrijs(
+    data: xr.DataArray,
+    landgebruik: xr.DataArray,
+    regio: xr.DataArray,
+    areagrid: xr.DataArray,
+    perha: bool,
+):
     """
     Returns a summarized DataFrame of the input data aggregated by land use and region.
 
@@ -65,7 +68,6 @@ def NCPrijs(data: xr.DataArray,
         The summarized DataFrame with data aggregated by land use and region.
     """
 
-
     mask_area = regio.notnull()
     data = data * mask_area
     regio = regio * mask_area
@@ -85,7 +87,7 @@ def NCPrijs(data: xr.DataArray,
     database = database.compute()
     crop_regio_sum_da = database.groupby(["landgebruik", "regio"]).sum()
 
-    #calculate yearlyd data from smaller timesteps
+    # calculate yearlyd data from smaller timesteps
     if "time" in crop_regio_sum_da.dims:
         crop_regio_sum_da["yearly_data"] = (
             crop_regio_sum_da["data"].groupby(crop_regio_sum_da.time.dt.year).sum()
@@ -104,8 +106,8 @@ def NCPrijs(data: xr.DataArray,
             .drop(["dx", "dy"], axis=1)
         )
         sum_df["data"] = sum_df["data"] / sum_df["areaal"]
-    if 'spatial_ref' in sum_df.columns:
-        sum_df = sum_df.drop('spatial_ref', axis=1)
+    if "spatial_ref" in sum_df.columns:
+        sum_df = sum_df.drop("spatial_ref", axis=1)
     return sum_df
 
 
@@ -216,11 +218,10 @@ arbdASC_sce = xr.open_dataarray(input_fns.arbdASC_fn)
 enrgASC_sce = xr.open_dataarray(input_fns.enrgASC_fn)
 
 regios = gpd.read_file(input_fns.risico_subregio_fn)
-regios['Nummer'] = regios['Nummer'].astype(float)
-regios_ar = imod.prepare.rasterize(geodataframe=regios,
-                                   like = areaalasc_sce, 
-                                   column = "Nummer", 
-                                   fill=np.nan)
+regios["Nummer"] = regios["Nummer"].astype(float)
+regios_ar = imod.prepare.rasterize(
+    geodataframe=regios, like=areaalasc_sce, column="Nummer", fill=np.nan
+)
 
 years = np.unique(potASC_combi.time.dt.year)
 continu_years = np.arange(years.min(), years.max() + 1)
@@ -237,7 +238,7 @@ assert (
 
 # Load Yield
 # MvdV 191128 added switch perha to muliply with ha per cell or not Tru for yields, Slase for costs
-#data, landgebruik, regio, areagrid, perha = potASC_combi[potASC_combi.time.dt.year.isin(years)],landgebruik_sce,regios_ar,areaalasc_sce, True
+# data, landgebruik, regio, areagrid, perha = potASC_combi[potASC_combi.time.dt.year.isin(years)],landgebruik_sce,regios_ar,areaalasc_sce, True
 
 pot_opbrengst = NCPrijs(
     potASC_combi[potASC_combi.time.dt.year.isin(years)],
@@ -260,9 +261,7 @@ act_opbrengst = (
 )
 
 ref_med_derving = (
-    NCPrijs(
-        Ylderv_med_combi, landgebruik_ref, regios_ar, areaalasc_ref, perha=True
-    )
+    NCPrijs(Ylderv_med_combi, landgebruik_ref, regios_ar, areaalasc_ref, perha=True)
     .drop(columns=["areaal"])
     .rename(columns={"data": "ref_med_derv"})
 )
@@ -300,8 +299,8 @@ cropdata = cropdata.merge(ref_med_derving, left_index=True, right_index=True)
 cropdata = cropdata.merge(arbeidskosten, left_index=True, right_index=True)
 cropdata = cropdata.merge(energiekosten, left_index=True, right_index=True)
 
-#%%
-#calculate derving given certain calculation method specified in params.calc
+# %%
+# calculate derving given certain calculation method specified in params.calc
 if params.calc == "optdervActPot":
     cropdata["derv_opbrengst"] = cropdata["pot_opbrengst"] - cropdata["act_opbrengst"]
 
@@ -337,16 +336,16 @@ elif params.calc == "optdervderv_ActMed_new":
     # #test same as old
     # med_act_opbrengst = cropdata.groupby(['regio', 'landgebruik'])["act_opbrengst"].median()
     # cropdata['act_opbrengst'] = [med_act_opbrengst.loc[regio, landgebruik] - derv for regio, landgebruik, derv in zip(cropdata.index.get_level_values('regio'), cropdata.index.get_level_values('landgebruik'), cropdata['derv_opbrengst'])]
-    # cropdata['schadeberekening_opbrengst'] = cropdata['act_opbrengst'] 
+    # cropdata['schadeberekening_opbrengst'] = cropdata['act_opbrengst']
 
-    #real
-    #med_act_opbrengst = cropdata.groupby(['regio', 'landgebruik'])["act_opbrengst"].median()
-    #cropdata['damage_calculation_yield'] = [med_act_opbrengst[r, l] - c for r, l, c in zip(cropdata.index.get_level_values('regio'), cropdata.index.get_level_values('landgebruik'), cropdata['derv_opbrengst'])]
+    # real
+    # med_act_opbrengst = cropdata.groupby(['regio', 'landgebruik'])["act_opbrengst"].median()
+    # cropdata['damage_calculation_yield'] = [med_act_opbrengst[r, l] - c for r, l, c in zip(cropdata.index.get_level_values('regio'), cropdata.index.get_level_values('landgebruik'), cropdata['derv_opbrengst'])]
 else:
     print("no calculation method given")
 
 
-#finalize cropdata data
+# finalize cropdata data
 cropdata["Scenario"] = params.scenario
 cropdata.reset_index(inplace=True)
 
@@ -357,7 +356,7 @@ cropdata = cropdata[
         "act_opbrengst",
         "pot_opbrengst",
         "areaal",
-       # "damage_calculation_yield",
+        # "damage_calculation_yield",
         "derv_opbrengst",
         "ref_med_derv",
         "arbeidskosten",
