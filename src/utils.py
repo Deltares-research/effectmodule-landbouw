@@ -3,6 +3,7 @@ Created on Wed Nov  6 11:24:01 2024
 
 @author: Woerkom
 """
+
 from pathlib import Path
 
 import geopandas as gpd
@@ -18,15 +19,15 @@ def read_snakemake_rule(path, name: str) -> "snakemake.rules.Rule":
         The path to the snakefile.
     name: str
         Name of the rule in the snakefile that runs this script.
-        
+
     Returns
     -------
     rule: snakemake.rules.Rules
-    
+
     Examples
     --------
     To run an example both interactively and in a workflow, e.g.:
-    
+
     >>> if "snakemake" not in globals():
     >>>     snakemake = read_snakemake_rule("snakefile", rule="my_rule")
     >>> modelname = snakemake.params.modelname
@@ -44,11 +45,12 @@ def read_snakemake_rule(path, name: str) -> "snakemake.rules.Rule":
             snakefile=Path(path),
         )
         rules = {rule.name: rule for rule in workflow._workflow.rules}
-    
+
     rule = rules.get(name)
     if rule is None:
         raise ValueError(
-            f'Rule "{name}" not in snakefile. Available rules: {", ".join(rules.keys())}')
+            f'Rule "{name}" not in snakefile. Available rules: {", ".join(rules.keys())}'
+        )
     return rule
 
 
@@ -60,15 +62,15 @@ def read_snakemake_rule(path, name: str) -> "snakemake.rules.Rule":
 #         The path to the snakefile.
 #     name: str
 #         Name of the rule in the snakefile that runs this script.
-        
+
 #     Returns
 #     -------
 #     rule: snakemake.rules.Rules
-    
+
 #     Examples
 #     --------
 #     To run an example both interactively and in a workflow, e.g.:
-    
+
 #     >>> if "snakemake" not in globals():
 #     >>>     snakemake = read_snakemake_rule("snakefile", rule="my_rule")
 #     >>> modelname = snakemake.params.modelname
@@ -83,12 +85,13 @@ def read_snakemake_rule(path, name: str) -> "snakemake.rules.Rule":
 #             snakefile=Path(path),
 #         )
 #         rules = {rule.name: rule for rule in workflow._workflow.rules}
-    
+
 #     rule = rules.get(name)
 #     if rule is None:
 #         raise ValueError(
 #             f"Rule {name} not in snakefile. Available rules: {', '.join(rules.keys())}")
 #     return rule
+
 
 def calculate_index(scenario, bias, totaal):
     """
@@ -116,22 +119,23 @@ def calculate_index(scenario, bias, totaal):
     index = (scenario - bias) / totaal
     return index
 
+
 def faster_overlay(df_zone, df_data, intsect_above_ncounts=3):
     """
-    Perform a faster spatial overlay by joining two GeoDataFrames and 
+    Perform a faster spatial overlay by joining two GeoDataFrames and
     updating geometries based on intersection counts.
 
     Parameters:
     df_zone (GeoDataFrame): The GeoDataFrame containing zone geometries.
     df_data (GeoDataFrame): The GeoDataFrame containing data geometries.
-    intsect_above_ncounts (int): The threshold for the number of intersections 
+    intsect_above_ncounts (int): The threshold for the number of intersections
                                  above which geometries are considered shared.
 
     Returns:
     GeoDataFrame: The resulting GeoDataFrame after performing the overlay.
     """
     # Perform a spatial join between the zone and data GeoDataFrames
-    data_join = gpd.sjoin(df_zone, df_data, how='right')
+    data_join = gpd.sjoin(df_zone, df_data, how="right")
 
     # Get unique indices and their counts from the joined data
     idx, counts = np.unique(data_join.index, return_counts=True)
@@ -148,42 +152,52 @@ def faster_overlay(df_zone, df_data, intsect_above_ncounts=3):
     # Calculate the intersection of shared polygons and zones
     intsect_pols = shared_pols.intersection(shared_zones)
     # Update the geometry of the joined data with the intersection geometries
-    data_join.loc[intsect_pols.index.unique(), 'geometry'] = intsect_pols.geometry
+    data_join.loc[intsect_pols.index.unique(), "geometry"] = intsect_pols.geometry
     # Drop the 'index_left' column from the joined data
-    data_join = data_join.drop('index_left', axis=1)
-    
+    data_join = data_join.drop("index_left", axis=1)
+
     return data_join
 
-#code for data options in prijstool
+
+# code for data options in prijstool
 def get_prijstool_option_runs(data_options, full_scenarios):
     subscenario_lst = []
     for full_scenario in full_scenarios:
-        if data_options == 'wof':
-            schade_wofost_opsplitsen = ['totaal','droog','nat','zout','indirect'] # possibility to split the actual potential production for different damage units (dry / wet / salt / inderect / total)
+        if data_options == "wof":
+            schade_wofost_opsplitsen = [
+                "totaal",
+                "droog",
+                "nat",
+                "zout",
+                "indirect",
+            ]  # possibility to split the actual potential production for different damage units (dry / wet / salt / inderect / total)
         else:
-            schade_wofost_opsplitsen = ['totaal']
-            
+            schade_wofost_opsplitsen = ["totaal"]
+
         for schade in schade_wofost_opsplitsen:
             for d in [data_options]:
-                if d == 'fao':
-                    calc_options = ["optdervActPot","optdervAct_Actgem","optdervAct_Actmed"]
-                if d == 'wof':
+                if d == "fao":
+                    calc_options = [
+                        "optdervActPot",
+                        "optdervAct_Actgem",
+                        "optdervAct_Actmed",
+                    ]
+                if d == "wof":
                     calc_options = ["optdervActPot"]
                 # if d == 'combi':
                 #     calc_options = ["optdervAct_Actgem","optdervAct_Actmed","optdervActPot"]
-                
+
                 ## Within the Deltascenarios we want to compare the scenario's with the 90 years Referentie median
-                if d == 'combi':
+                if d == "combi":
                     calc_options = ["optdervAct_ActMedPot"]
-                if d == 'combiderv':
+                if d == "combiderv":
                     calc_options = ["optdervderv_ActMed_new"]
-                    
+
                 for calc in calc_options:
                     subscenario = rf"{full_scenario}_{schade}_{d}_{calc}"
                     print(subscenario)
                     subscenario_lst.append(subscenario)
     return subscenario_lst
-
 
 
 def read_snakemake_rule_2(path, name: str) -> "snakemake.rules.Rule":
@@ -194,15 +208,15 @@ def read_snakemake_rule_2(path, name: str) -> "snakemake.rules.Rule":
         The path to the snakefile.
     name: str
         Name of the rule in the snakefile that runs this script.
-        
+
     Returns
     -------
     rule: snakemake.rules.Rules
-    
+
     Examples
     --------
     To run an example both interactively and in a workflow, e.g.:
-    
+
     >>> if "snakemake" not in globals():
     >>>     snakemake = read_snakemake_rule("snakefile", rule="my_rule")
     >>> modelname = snakemake.params.modelname
@@ -210,7 +224,7 @@ def read_snakemake_rule_2(path, name: str) -> "snakemake.rules.Rule":
     """
     try:
         from snakemake.settings.types import ResourceSettings
-    except ImpoortError:
+    except ImportError:
         from snakemake.settings import ResourceSettings
     from snakemake.api import SnakemakeApi
 
@@ -220,9 +234,10 @@ def read_snakemake_rule_2(path, name: str) -> "snakemake.rules.Rule":
             snakefile=Path(path),
         )
         rules = {rule.name: rule for rule in workflow._workflow.rules}
-    
+
     rule = rules.get(name)
     if rule is None:
         raise ValueError(
-            f'Rule "{name}" not in snakefile. Available rules: {", ".join(rules.keys())}')
+            f'Rule "{name}" not in snakefile. Available rules: {", ".join(rules.keys())}'
+        )
     return rule
