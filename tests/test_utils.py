@@ -34,13 +34,23 @@ def test_get_prijstool_option_runs_wof():
         ["REF2017BP18"],
     )
 
-    assert len(result) == 5
+    expected = [
+        "REF2017BP18_totaal_wof_optdervActPot",
+        "REF2017BP18_droog_wof_optdervActPot",
+        "REF2017BP18_nat_wof_optdervActPot",
+        "REF2017BP18_zout_wof_optdervActPot",
+        "REF2017BP18_indirect_wof_optdervActPot",
+    ]
+
+    assert result == expected
 
 
-def test_read_snakemake_rule():
-    rule = read_snakemake_rule(
-        "workflows/wf_landbouw_test.smk",
-        "prepare_median_input",
+def test_get_prijstool_option_runs_combi():
+    result = get_prijstool_option_runs(
+        "combi",
+        ["REF2017BP18"],
     )
 
-    assert rule.name == "prepare_median_input"
+    expected = ["REF2017BP18_totaal_combi_optdervAct_ActMedPot"]
+
+    assert result == expected
