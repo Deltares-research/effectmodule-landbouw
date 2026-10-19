@@ -1,10 +1,8 @@
 #%%
 # Load necessary libraries
-import pandas as pd
-from pathlib import Path
-import seaborn as sns
+
 import geopandas as gpd
-import matplotlib.pyplot as plt
+import pandas as pd
 
 import utils
 

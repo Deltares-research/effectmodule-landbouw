@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Oct 26 09:09:58 2022
 
@@ -9,12 +8,14 @@ prepare input files and mask areas that are not crops
 """
 
 # %%
+import geopandas as gpd
 import numpy as np
 import xarray as xr
 from imod.prepare import rasterize
-import geopandas as gpd
 
 import utils
+
+
 # %% functions
 def make_mask(file, path_DPZW_regio):
     """

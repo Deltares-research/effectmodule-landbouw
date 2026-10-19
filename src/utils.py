@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
 """
 Created on Wed Nov  6 11:24:01 2024
 
 @author: Woerkom
 """
-import snakemake
 from pathlib import Path
+
 import geopandas as gpd
 import numpy as np
-import pandas as pd
+import snakemake
 
 
 def read_snakemake_rule(path, name: str) -> "snakemake.rules.Rule":
@@ -33,7 +32,6 @@ def read_snakemake_rule(path, name: str) -> "snakemake.rules.Rule":
     >>> modelname = snakemake.params.modelname
     >>> template = snakemake.input["template"]
     """
-    from pathlib import Path
     try:
         from snakemake.settings.types import ResourceSettings
     except ImportError:
@@ -210,7 +208,6 @@ def read_snakemake_rule_2(path, name: str) -> "snakemake.rules.Rule":
     >>> modelname = snakemake.params.modelname
     >>> template = snakemake.input["template"]
     """
-    from pathlib import Path
     try:
         from snakemake.settings.types import ResourceSettings
     except ImpoortError:

@@ -1,4 +1,3 @@
-# %% -*- coding: utf-8 -*-
 """
 Created on Mon Apr 23 09:48:43 2018
 Prijstool
@@ -17,13 +16,14 @@ v7   250128 Marnix van der Vat modified option 'optdervAct_Actmed' to calculate 
 1.061 191204 Marnix van der Vat remoeplaced Pandas from_csv with read_csv to comply with newer Pandas versions
 """
 
-import pandas as pd
-import numpy as np
-import xarray as xr
-import imod
-from pathlib import Path
 import sys
+from pathlib import Path
+
 import geopandas as gpd
+import imod
+import numpy as np
+import pandas as pd
+import xarray as xr
 
 sys.path.append(r"C:\git_repos\effectmodule_landbouw\src")
 import utils
