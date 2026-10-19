@@ -16,7 +16,6 @@ v7   250128 Marnix van der Vat modified option 'optdervAct_Actmed' to calculate 
 1.061 191204 Marnix van der Vat remoeplaced Pandas from_csv with read_csv to comply with newer Pandas versions
 """
 
-import sys
 from pathlib import Path
 
 import geopandas as gpd
