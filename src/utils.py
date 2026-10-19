@@ -54,45 +54,6 @@ def read_snakemake_rule(path, name: str) -> "snakemake.rules.Rule":
     return rule
 
 
-# def read_snakemake_rule(path, name: str) -> "snakemake.rules.Rule":   ## OLD and NOT WORKING ANYMORE - USE ABOVE
-#     """
-#     Parameters
-#     ----------
-#     path: str, pathlib.Path
-#         The path to the snakefile.
-#     name: str
-#         Name of the rule in the snakefile that runs this script.
-
-#     Returns
-#     -------
-#     rule: snakemake.rules.Rules
-
-#     Examples
-#     --------
-#     To run an example both interactively and in a workflow, e.g.:
-
-#     >>> if "snakemake" not in globals():
-#     >>>     snakemake = read_snakemake_rule("snakefile", rule="my_rule")
-#     >>> modelname = snakemake.params.modelname
-#     >>> template = snakemake.input["template"]
-#     """
-#     from snakemake.settings import ResourceSettings
-#     from snakemake.api import SnakemakeApi
-
-#     with SnakemakeApi() as snakemake_api:
-#         workflow = snakemake_api.workflow(
-#             resource_settings=ResourceSettings(),
-#             snakefile=Path(path),
-#         )
-#         rules = {rule.name: rule for rule in workflow._workflow.rules}
-
-#     rule = rules.get(name)
-#     if rule is None:
-#         raise ValueError(
-#             f"Rule {name} not in snakefile. Available rules: {', '.join(rules.keys())}")
-#     return rule
-
-
 def calculate_index(scenario, bias, totaal):
     """
     Calculate an index by adjusting the scenario data with a bias and dividing by a total.
@@ -198,46 +159,3 @@ def get_prijstool_option_runs(data_options, full_scenarios):
                     print(subscenario)
                     subscenario_lst.append(subscenario)
     return subscenario_lst
-
-
-def read_snakemake_rule_2(path, name: str) -> "snakemake.rules.Rule":
-    """
-    Parameters
-    ----------
-    path: str, pathlib.Path
-        The path to the snakefile.
-    name: str
-        Name of the rule in the snakefile that runs this script.
-
-    Returns
-    -------
-    rule: snakemake.rules.Rules
-
-    Examples
-    --------
-    To run an example both interactively and in a workflow, e.g.:
-
-    >>> if "snakemake" not in globals():
-    >>>     snakemake = read_snakemake_rule("snakefile", rule="my_rule")
-    >>> modelname = snakemake.params.modelname
-    >>> template = snakemake.input["template"]
-    """
-    try:
-        from snakemake.settings.types import ResourceSettings
-    except ImportError:
-        from snakemake.settings import ResourceSettings
-    from snakemake.api import SnakemakeApi
-
-    with SnakemakeApi() as snakemake_api:
-        workflow = snakemake_api.workflow(
-            resource_settings=ResourceSettings(),
-            snakefile=Path(path),
-        )
-        rules = {rule.name: rule for rule in workflow._workflow.rules}
-
-    rule = rules.get(name)
-    if rule is None:
-        raise ValueError(
-            f'Rule "{name}" not in snakefile. Available rules: {", ".join(rules.keys())}'
-        )
-    return rule

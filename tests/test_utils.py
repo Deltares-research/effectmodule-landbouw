@@ -1,6 +1,10 @@
 import numpy as np
 
-from src.utils import calculate_index, get_prijstool_option_runs
+from src.utils import (
+    calculate_index,
+    get_prijstool_option_runs,
+    read_snakemake_rule,
+)
 
 
 def test_calculate_index():
@@ -31,3 +35,12 @@ def test_get_prijstool_option_runs_wof():
     )
 
     assert len(result) == 5
+
+
+def test_read_snakemake_rule():
+    rule = read_snakemake_rule(
+        "workflows/wf_landbouw_test.smk",
+        "prepare_median_input",
+    )
+
+    assert rule.name == "prepare_median_input"

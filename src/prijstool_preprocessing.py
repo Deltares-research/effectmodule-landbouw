@@ -183,10 +183,8 @@ def databasesplit(split_area, data, attribute, header):
 # %%
 # paths
 if "snakemake" not in globals():
-    snakefile = r"C:\git_repos\effectmodule_landbouw\snakes\wf_landbouw_test_new"
-    snakemake = utils.read_snakemake_rule_2(
-        snakefile, name="run_prijstool_preprocessing"
-    )
+    snakefile = r"C:\git_repos\effectmodule_landbouw\snakes\wf_landbouw_test.smk"
+    snakemake = utils.read_snakemake_rule(snakefile, name="run_prijstool_preprocessing")
 
 input_fns = snakemake.input
 params = snakemake.params
