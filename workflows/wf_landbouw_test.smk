@@ -1,20 +1,21 @@
+configfile: "config/config.yaml"
+
 from pathlib import Path
 # from itertools import product
 # from utils import get_prijstool_option_runs
 
 #basis mappen
-basefolder = Path(r'p:\archivedprojects\11202240-kpp-dp-zoetwater\NWM_BP2018_en_historie\2018_BP2018_productieomgeving')
+basefolder = Path(config["paths"]["basefolder"])
 agricom_folder = basefolder / 'Agricom_runZ1/output_AGRICOM'
 
-localfolder = Path(r'P:\doorontwikkeling-dpzw-effectmodule\Landbouw\Data')
+localfolder = Path(config["paths"]["localfolder"])
 inputfolder = localfolder / 'Invoer'
 interimfolder = localfolder / 'Interim_new'
 outputfolder = localfolder / 'Output_new'
 
-ref_scenario = 'REF2017BP18'
-subscenario = ref_scenario
+ref_scenario = config["scenarios"]["reference"]
 scenario = ref_scenario
-
+subscenario = ref_scenario
    
 # [prepare_median_input]
 # [input]
@@ -22,7 +23,7 @@ prepare_median_input_pot_data_fn = inputfolder / ref_scenario / 'PotYld.nc'
 prepare_median_input_act_data_fn = inputfolder / ref_scenario / 'ActYld.nc'
 prepare_median_input_lgn_fn = agricom_folder / f'{ref_scenario}/grids/landgebruik.asc'
 # [params]
-lgn_landbouwgewassen = [1, 2, 3, 4, 5, 6, 7, 9, 10, 21]
+lgn_landbouwgewassen = config["prepare_median_input"]["lgn_landbouwgewassen"]
 # [output]
 prepare_median_input_act_med_fn = interimfolder / ref_scenario / 'median_masked_ActYld_v12.asc'
 prepare_median_input_derv_med_fn = interimfolder / ref_scenario / 'median_masked_derv_v12.asc'
@@ -41,8 +42,8 @@ run_prijstool_preprocessing_enrgASC_fn = inputfolder / scenario / 'energiekosten
 run_prijstool_preprocessing_landgebruik_fn = agricom_folder / scenario / 'grids/landgebruik.asc'
 run_prijstool_preprocessing_areaalasc_fn = agricom_folder / scenario / 'grids/areaal.asc'
 # [param]
-data_options = 'combiderv'
-calc = 'optdervderv_ActMed_new'
+data_options = config["settings"]["data_options"]
+calc = config["settings"]["calc"]
 # [output]
 run_prijstool_preprocessing_cropdata_fn = interimfolder / scenario / f'{scenario}_v12_new.csv'
 run_prijstool_preprocessing_cropdata_split_fn = interimfolder / scenario / f'{subscenario}_split_v12_new.csv'
@@ -121,7 +122,7 @@ rule run_prijstool_preprocessing:
 
 rule run_prijstool:
     input:
-        script_fn = "../src/Prijstool_Deltascenarios_Class.py",
+        script_fn = "src/Prijstool_Deltascenarios_Class.py",
         elasticity_fn = run_prijstool_elasticity_fn,
         crop_prices_fn = run_prijstool_crop_prices_fn,
         cropdata_split_sce_fn = run_prijstool_preprocessing_cropdata_split_fn,

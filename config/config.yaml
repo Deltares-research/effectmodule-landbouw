@@ -1,0 +1,31 @@
+paths:
+  basefolder: "P:/archivedprojects/11202240-kpp-dp-zoetwater/NWM_BP2018_en_historie/2018_BP2018_productieomgeving"
+  localfolder: "P:/doorontwikkeling-dpzw-effectmodule/Landbouw/Data"
+
+scenarios:
+  reference: "REF2017BP18"
+
+  run:
+    - "REF2017BP18"
+    - "S2050BP18"
+    - "S2085BP18"
+
+  suffixes:
+    - ""
+
+settings:
+  data_options: "combiderv"
+  calc: "optdervderv_ActMed_new"
+
+prepare_median_input:
+  lgn_landbouwgewassen:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 9
+    - 10
+    - 21
