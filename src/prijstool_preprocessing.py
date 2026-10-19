@@ -24,7 +24,6 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-# sys.path.append(r"C:\git_repos\effectmodule_landbouw\src")
 from src import utils
 
 # %%################################
@@ -183,7 +182,7 @@ def databasesplit(split_area, data, attribute, header):
 # %%
 # paths
 if "snakemake" not in globals():
-    snakefile = r"C:\git_repos\effectmodule_landbouw\snakes\wf_landbouw_test.smk"
+    snakefile = Path(__file__).parent.parent / "workflows" / "wf_landbouw_test.smk"
     snakemake = utils.read_snakemake_rule(snakefile, name="run_prijstool_preprocessing")
 
 input_fns = snakemake.input

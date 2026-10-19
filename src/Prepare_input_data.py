@@ -8,6 +8,8 @@ prepare input files and mask areas that are not crops
 """
 
 # %%
+from pathlib import Path
+
 import geopandas as gpd
 import numpy as np
 import xarray as xr
@@ -42,7 +44,7 @@ def make_mask(file, path_DPZW_regio):
 # %%
 # paths
 if "snakemake" not in globals():
-    snakefile = r"C:\git_repos\effectmodule_landbouw\snakes\wf_landbouw_test_new"
+    snakefile = Path(__file__).parent.parent / "workflows" / "wf_landbouw_test.smk"
     snakemake = utils.read_snakemake_rule(snakefile, name="prepare_median_input")
 
 input_fns = snakemake.input
@@ -69,7 +71,7 @@ mask = mask_landg * mask_wad
 median_yield_masked = median_yield * mask
 median_derv_masked = median_derv * mask
 
-#save data
+# save data
 median_yield_masked.rio.to_raster(output_fns.act_med_fn, nodata=-9999)
 median_derv_masked.rio.to_raster(output_fns.derv_med_fn, nodata=-9999)
 
