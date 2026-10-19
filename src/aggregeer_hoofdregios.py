@@ -3,8 +3,6 @@
 
 import geopandas as gpd
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 import utils
 
@@ -46,7 +44,11 @@ droogte_risico_df.columns = [
 ]
 droogte_risico_df.to_excel(output_fns.droogterisico_hoofdregios_fn)
 
+
 # %%
+# import seaborn as sns
+# import matplotlib.pyplot as plt
+#
 # sns.barplot(data=droogte_risico_df.reset_index(),
 #             x='Droogterisico',
 #             y='Hoofdregio',
