@@ -121,7 +121,7 @@ rule run_prijstool_preprocessing:
 
 rule run_prijstool:
     input:
-        # r"C:\git_repos\effectmodule_landbouw\src\Prijstool_Deltascenarios_Class_rewrite_new_act.py",
+        script_fn = "../src/Prijstool_Deltascenarios_Class.py",
         elasticity_fn = run_prijstool_elasticity_fn,
         crop_prices_fn = run_prijstool_crop_prices_fn,
         cropdata_split_sce_fn = run_prijstool_preprocessing_cropdata_split_fn,
