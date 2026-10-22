@@ -10,69 +10,42 @@ prepare input files and mask areas that are not crops
 # %%
 from pathlib import Path
 
-import geopandas as gpd
-import numpy as np
 import xarray as xr
-from imod.prepare import rasterize
 
 import utils
+from processing.io import write_outputs
+from processing.masks import create_crop_mask
+from processing.yields import calculate_median_yields
 
 
-# %% functions
-def make_mask(file, path_DPZW_regio):
-    """
-    Mask a given file based on the DPZW regio shapefile.
+def main(snakemake):
+    pot_data = xr.open_dataarray(snakemake.input.pot_data_fn)
 
-    Parameters
-    ----------
-    file : xarray.DataArray
-        The data array to be masked.
-    path_DPZW_regio : str
-        Path to the DPZW regio shapefile.
+    act_data = xr.open_dataarray(snakemake.input.act_data_fn)
 
-    Returns
-    -------
-    xarray.DataArray
-        The masked data array.
-    """
-    DPZW_regio = gpd.read_file(path_DPZW_regio)
-    DPZW_regio["ID"] = DPZW_regio.index
-    DPZW_regio_grid = rasterize(DPZW_regio, like=file, column="ID")
-    file_masked = xr.where(DPZW_regio_grid >= 0, 1, np.nan)
-    return file_masked
+    median_actual, median_derv = calculate_median_yields(
+        pot_data,
+        act_data,
+    )
 
-# %%
-# paths
+    lgn = xr.open_dataarray(snakemake.input.lgn_fn).isel(band=0)
+
+    mask = create_crop_mask(
+        lgn,
+        snakemake.params.lgn_landbouwgewassen,
+        snakemake.input.path_DPZW_regio,
+    )
+
+    write_outputs(
+        median_actual * mask,
+        median_derv * mask,
+        snakemake.output.act_med_fn,
+        snakemake.output.derv_med_fn,
+    )
+
+
 if "snakemake" not in globals():
     snakefile = Path(__file__).parent.parent / "workflows" / "wf_landbouw_test.smk"
     snakemake = utils.read_snakemake_rule(snakefile, name="prepare_median_input")
 
-input_fns = snakemake.input
-params = snakemake.params
-output_fns = snakemake.output
-
-# %% ############################
-## mediane opbrengst ref ##
-############################
-pot_data = xr.open_dataarray(input_fns.pot_data_fn)
-act_data = xr.open_dataarray(input_fns.act_data_fn)
-median_yield = act_data.median(dim="time")
-
-derv = pot_data - act_data
-median_derv = derv.median(dim="time")
-
-# mask voor landbouwgrond en dpzw regios
-landgeb = xr.open_dataarray(input_fns.lgn_fn).isel(band=0)
-mask_landg = xr.where(landgeb.isin(params.lgn_landbouwgewassen), 1, np.nan)
-mask_wad = make_mask(mask_landg, input_fns.path_DPZW_regio)
-mask = mask_landg * mask_wad
-
-# mask data
-median_yield_masked = median_yield * mask
-median_derv_masked = median_derv * mask
-
-# save data
-median_yield_masked.rio.to_raster(output_fns.act_med_fn, nodata=-9999)
-median_derv_masked.rio.to_raster(output_fns.derv_med_fn, nodata=-9999)
-
-# %%
+main(snakemake)
