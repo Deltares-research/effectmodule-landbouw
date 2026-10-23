@@ -1,6 +1,6 @@
 import pandas as pd
 
-from processing.aggregation import NCPrijs
+from src.processing.prijstool.aggregation import NCPrijs
 
 
 def create_cropdata(
