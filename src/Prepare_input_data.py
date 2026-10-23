@@ -13,10 +13,10 @@ from pathlib import Path
 
 import xarray as xr
 
-from src import utils
-from src.processing.io import write_outputs
-from src.processing.spatial.masks import create_crop_mask
-from src.processing.yields import calculate_median_yields
+import utils
+from processing.io import write_outputs
+from processing.spatial.masks import create_crop_mask
+from processing.yields import calculate_median_yields
 
 
 def main(snakemake) -> None:
