@@ -20,6 +20,23 @@ from src.processing.yields import calculate_median_yields
 
 
 def main(snakemake) -> None:
+    """
+    Prepare median yield input rasters for the agricultural workflow.
+
+    Loads potential and actual yield data, calculates median actual yield
+    and yield loss, masks the results to agricultural land within the
+    specified regions, and writes the resulting rasters to disk.
+
+    Parameters
+    ----------
+    snakemake
+        Snakemake object containing the input files, output files,
+        and parameters required by the workflow.
+
+    Returns
+    -------
+    None
+    """
     pot_data = xr.open_dataarray(snakemake.input.pot_data_fn)
 
     act_data = xr.open_dataarray(snakemake.input.act_data_fn)
