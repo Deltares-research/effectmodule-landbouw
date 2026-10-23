@@ -50,7 +50,21 @@ from processing.yield_loss import calculate_yield_loss
 from src import utils
 
 
-def main(snakemake):
+def main(snakemake) -> None:
+    """
+    Create input data for the Prijstool workflow.
+
+    Loads the required raster data, validates the simulation years,
+    aggregates data by crop and region, calculates yield losses,
+    and writes the regular and crop-split Prijstool input files.
+
+    Parameters
+    ----------
+    snakemake
+        Snakemake object containing the input files, output files,
+        and parameters for the workflow.
+    """
+
     # Prepare output directories
     Path(snakemake.output.cropdata_fn).parent.mkdir(
         parents=True,
