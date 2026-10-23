@@ -6,7 +6,7 @@ def databasesplit(split_area, data, attribute, header):
     #    data=cropdata
     # The relevant crop that will be split are filtered from the data in xml file
     n = split_area.Crop.unique()
-    split_crop = data.loc[data.Crop.isin(n)]
+    split_crop = data.loc[data.Crop.isin(n)].copy()
 
     split_crop["lookup"] = (
         split_crop[attribute[2]].map(str) + "_" + split_crop[attribute[3]].map(str)

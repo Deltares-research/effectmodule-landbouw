@@ -41,13 +41,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src import utils
-from src.processing.io import load_input_data
-from src.processing.prijstool.cropdata import create_cropdata, finalise_cropdata
-from src.processing.prijstool.splitting import apply_crop_splitting
-from src.processing.prijstool.yield_loss import calculate_yield_loss
-from src.processing.spatial.regions import create_region_grid
-from src.processing.validation import validate_continuous_years
+import utils
+from processing.io import load_input_data
+from processing.prijstool.cropdata import create_cropdata, finalise_cropdata
+from processing.prijstool.splitting import apply_crop_splitting
+from processing.prijstool.yield_loss import calculate_yield_loss
+from processing.spatial.regions import create_region_grid
+from processing.validation import validate_continuous_years
 
 
 def main(snakemake) -> None:

@@ -12,3 +12,6 @@ snakemake -s ./workflows/wf_landbouw_test
 Run these commands:
 - pixi run pytest
 - snakemake -s workflows/wf_landbouw_test.smk all -n -p
+
+A single snakemake rule can be run with the following command from the WCF node:
+- pixi run snakemake -s workflows/wf_landbouw_test.smk prepare_median_input -c 1
