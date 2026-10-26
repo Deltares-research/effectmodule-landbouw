@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 import utils
-from prijstool_deltascenarios_Class import Prijstool
+from src.processing.prijstool.model import Prijstool
 
 
 def main(snakemake) -> None:

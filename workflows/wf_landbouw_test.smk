@@ -28,7 +28,7 @@ lgn_landbouwgewassen = config["prepare_median_input"]["lgn_landbouwgewassen"]
 prepare_median_input_act_med_fn = interimfolder / ref_scenario / 'median_masked_ActYld_v12.asc'
 prepare_median_input_derv_med_fn = interimfolder / ref_scenario / 'median_masked_derv_v12.asc'
 # [script]
-prepare_median_input_script = '../src/Prepare_input_data.py'
+prepare_median_input_script = '../src/prepare_input_data.py'
 
 # [run_prijstool_preprocessing]
 # [input]
@@ -61,7 +61,7 @@ run_prijstool_twpaynam_fn = interimfolder / scenario / f'{subscenario}-totperare
 run_prijstool_twpcyfil_fn = interimfolder / scenario / f'{subscenario}-totpercrop-year_v12_new.csv'
 run_prijstool_twpcafil_fn = interimfolder / scenario / f'{subscenario}-totpercrop-area_v12_new.csv'
 # [script]
-run_prijstool_script = '../src/Prijstool_Deltascenarios.py'
+run_prijstool_script = '../src/run_prijstool.py'
 
 # [uitsplitsing_welvaart]
 # [output]
@@ -122,7 +122,7 @@ rule run_prijstool_preprocessing:
 
 rule run_prijstool:
     input:
-        script_fn = "src/Prijstool_Deltascenarios_Class.py",
+        script_fn = "src/processing/prijstool/model.py",
         elasticity_fn = run_prijstool_elasticity_fn,
         crop_prices_fn = run_prijstool_crop_prices_fn,
         cropdata_split_sce_fn = run_prijstool_preprocessing_cropdata_split_fn,
