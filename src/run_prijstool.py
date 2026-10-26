@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 
 import utils
-from src.processing.prijstool.model import Prijstool
+from processing.prijstool.model import Prijstool
 
 
 def main(snakemake) -> None:
