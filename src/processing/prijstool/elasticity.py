@@ -52,3 +52,29 @@ def prepare_elasticity(
     )
 
     return elasticity_xr
+
+
+def get_price_effect_masks(elasticity: xr.Dataset):
+    """
+    Create masks for the different price-effect categories.
+
+    Parameters
+    ----------
+    elasticity : xr.Dataset
+        Elasticity data containing the 'prijseffect' variable.
+
+    Returns
+    -------
+    tuple of xr.DataArray
+        Masks for fixed-price, local-market, and world-market
+        price effects.
+    """
+    fixed_price_effect = elasticity["prijseffect"] == 0
+    local_market_price_effect = elasticity["prijseffect"] == 1
+    world_market_price_effect = elasticity["prijseffect"] == 2
+
+    return (
+        fixed_price_effect,
+        local_market_price_effect,
+        world_market_price_effect,
+    )
