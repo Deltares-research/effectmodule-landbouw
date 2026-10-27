@@ -6,6 +6,7 @@ import xarray as xr
 
 from processing.prijstool.cropdata import create_cropdata_xr
 from processing.prijstool.elasticity import prepare_elasticity
+from processing.prijstool.prices import prepare_base_prices
 from processing.prijstool.production import (
     aggregate_production_by_crop,
     calculate_production_and_costs,
@@ -98,11 +99,10 @@ class Prijstool:
             elasticity=p_elas,
         )
 
-        base_price = self.crop_prices.set_index("regio_nummer")
-        base_price = base_price[cropnam]
-        base_price = base_price.stack(0)
-        base_price.index.names = ["Area", "Crop"]
-        base_price = base_price.swaplevel(0, 1).sort_index().to_xarray()
+        base_price = prepare_base_prices(
+            crop_prices=self.crop_prices,
+            crop_names=cropnam,
+        )
 
         ################
         # DIT IS YREF
