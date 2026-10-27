@@ -173,6 +173,8 @@ def create_cropdata_xr(
         Crop data indexed by Crop, Area, and Year, including missing
         regions filled with zeros.
     """
+    cropdata = cropdata.copy()
+
     crop_name_num = pd.Series(
         elasticity.columns,
         index=elasticity.loc["nummer"],
