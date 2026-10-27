@@ -61,3 +61,62 @@ def calculate_production_and_costs(
         arbeidskosten_sce,
         energiekosten_sce,
     )
+
+
+def aggregate_production_by_crop(
+    standard_production_ref: xr.DataArray,
+    standard_production_sce: xr.DataArray,
+    yield_loss_sce: xr.DataArray,
+    elasticity: xr.Dataset,
+) -> tuple[
+    xr.DataArray,
+    xr.DataArray,
+    xr.DataArray,
+]:
+    """
+    Aggregate production and yield loss by crop.
+
+    Standard production is summed over all areas. The resulting
+    reference and scenario production are converted to world
+    production using the Dutch share of world supply.
+
+    Parameters
+    ----------
+    standard_production_ref : xr.DataArray
+        Standard production for the reference situation.
+    standard_production_sce : xr.DataArray
+        Standard production for the scenario.
+    yield_loss_sce : xr.DataArray
+        Scenario yield loss.
+    elasticity : xr.Dataset
+        Elasticity data containing the Dutch share of world supply.
+
+    Returns
+    -------
+    tuple of xr.DataArray
+        Reference world production by crop, scenario world production
+        by crop, and scenario yield loss by crop.
+    """
+
+    # do sums over area
+    # DIT MOETEN EEN YREF EN EEN YSCE VARIANT WORDEN
+    #############################
+
+    production_ref_per_crop = standard_production_ref.sum("Area")
+    production_sce_per_crop = standard_production_sce.sum("Area")
+
+    production_ref_per_crop_world = (
+        production_ref_per_crop / elasticity["NL aandeel wereldaanbod"]
+    )
+
+    production_sce_per_crop_world = (
+        production_sce_per_crop / elasticity["NL aandeel wereldaanbod"]
+    )
+
+    yield_loss_sce_per_crop = yield_loss_sce.sum("Area")
+
+    return (
+        production_ref_per_crop_world,
+        production_sce_per_crop_world,
+        yield_loss_sce_per_crop,
+    )

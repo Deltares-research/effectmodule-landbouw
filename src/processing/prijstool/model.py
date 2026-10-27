@@ -6,7 +6,10 @@ import xarray as xr
 
 from processing.prijstool.cropdata import create_cropdata_xr
 from processing.prijstool.elasticity import prepare_elasticity
-from processing.prijstool.production import calculate_production_and_costs
+from processing.prijstool.production import (
+    aggregate_production_by_crop,
+    calculate_production_and_costs,
+)
 from processing.prijstool.yields import get_standard_yield
 
 
@@ -84,21 +87,16 @@ class Prijstool:
         local_market_price_effect = p_elas["prijseffect"] == 1
         world_market_price_effect = p_elas["prijseffect"] == 2
 
-        # do sums over area
-        # DIT MOETEN EEN YREF EN EEN YSCE VARIANT WORDEN
-        #############################
-
-        standard_opbrengst_kg_ref_per_crop = standard_opbrengst_kg_ref.sum("Area")
-        standard_opbrengst_kg_sce_per_crop = standard_opbrengst_kg_sce.sum("Area")
-
-        standard_opbrengst_kg_ref_per_crop_world = (
-            standard_opbrengst_kg_ref_per_crop / p_elas["NL aandeel wereldaanbod"]
+        (
+            standard_opbrengst_kg_ref_per_crop_world,
+            standard_opbrengst_kg_sce_per_crop_world,
+            droogtederving_kg_sce_per_crop,
+        ) = aggregate_production_by_crop(
+            standard_production_ref=standard_opbrengst_kg_ref,
+            standard_production_sce=standard_opbrengst_kg_sce,
+            yield_loss_sce=droogtederving_kg_sce,
+            elasticity=p_elas,
         )
-        standard_opbrengst_kg_sce_per_crop_world = (
-            standard_opbrengst_kg_sce_per_crop / p_elas["NL aandeel wereldaanbod"]
-        )
-
-        droogtederving_kg_sce_per_crop = droogtederving_kg_sce.sum("Area")
 
         base_price = self.crop_prices.set_index("regio_nummer")
         base_price = base_price[cropnam]
