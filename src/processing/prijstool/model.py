@@ -13,7 +13,9 @@ from processing.prijstool.elasticity import get_price_effect_masks, prepare_elas
 from processing.prijstool.prices import prepare_base_prices
 from processing.prijstool.production import (
     aggregate_production_by_crop,
+    calculate_average_standard_production,
     calculate_production_and_costs,
+    calculate_scenario_yields,
 )
 from processing.prijstool.yields import get_standard_yield
 
@@ -116,10 +118,8 @@ class Prijstool:
         # MvdV 181130 added constant elasticity demand function
         if self.optConstElas:
             demand_scale_factor = calibrate_constant_elasticity_demand(
-                standard_production_ref=standard_opbrengst_kg_ref,
-                standard_production_ref_world=(
-                    standard_opbrengst_kg_ref_per_crop_world
-                ),
+                standard_production=standard_opbrengst_kg_ref,
+                standard_production_world=(standard_opbrengst_kg_ref_per_crop_world),
                 base_price=base_price,
                 elasticity=p_elas,
                 local_market_price_effect=local_market_price_effect,
@@ -128,10 +128,8 @@ class Prijstool:
 
         else:
             demand_slope, demand_intercept = calibrate_linear_demand(
-                standard_production_ref=standard_opbrengst_kg_ref,
-                standard_production_ref_world=(
-                    standard_opbrengst_kg_ref_per_crop_world
-                ),
+                standard_production=standard_opbrengst_kg_ref,
+                standard_production_world=(standard_opbrengst_kg_ref_per_crop_world),
                 base_price=base_price,
                 elasticity=p_elas,
                 local_market_price_effect=local_market_price_effect,
@@ -149,46 +147,34 @@ class Prijstool:
         # dat is raar maar was eerst ook zo?
         ######################################
 
-        new_yield_local = standard_opbrengst_kg_sce - droogtederving_kg_sce
-        new_yield_world_per_crop_year = (
-            standard_opbrengst_kg_sce_per_crop_world - droogtederving_kg_sce_per_crop
-        )  # new yield global per crop and year
-        new_yield_local_from_world_per_crop_year = (
-            p_elas["NL aandeel wereldvraag"] * new_yield_world_per_crop_year
-        )  # new yield local .... per crop and year
+        (
+            new_yield_local,
+            new_yield_world_per_crop_year,
+            new_yield_local_from_world_per_crop_year,
+        ) = calculate_scenario_yields(
+            standard_production_sce=standard_opbrengst_kg_sce,
+            standard_production_sce_world=(standard_opbrengst_kg_sce_per_crop_world),
+            yield_loss_sce=droogtederving_kg_sce,
+            yield_loss_sce_per_crop=(droogtederving_kg_sce_per_crop),
+            elasticity=p_elas,
+        )
 
-        if "Year" in standard_opbrengst_kg_sce.dims:
-            average_standard_yield_local = standard_opbrengst_kg_sce.mean("Year")
-            average_standard_yield_world = (
-                standard_opbrengst_kg_sce_per_crop_world.mean("Year")
-            )
-        else:
-            average_standard_yield_local = standard_opbrengst_kg_sce
-            average_standard_yield_world = standard_opbrengst_kg_sce_per_crop_world
+        (
+            average_standard_yield_local,
+            average_standard_yield_world,
+        ) = calculate_average_standard_production(
+            standard_production_local=standard_opbrengst_kg_sce,
+            standard_production_world=(standard_opbrengst_kg_sce_per_crop_world),
+        )
 
         if self.optFixedPrice:
-            # calibrate the pricefunction on the average potential yield
-            demand_slope = xr.where(
-                local_market_price_effect,
-                p_elas["elasticity"] * average_standard_yield_local / base_price,
-                1,
-            )
-            demand_slope = xr.where(
-                world_market_price_effect,
-                p_elas["elasticity"] * average_standard_yield_world / base_price,
-                demand_slope,
-            )
-            demand_slope = xr.where(demand_slope == 0, 1, demand_slope)
-
-            demand_intercept = xr.where(
-                local_market_price_effect,
-                average_standard_yield_local - demand_slope * base_price,
-                0,
-            )
-            demand_intercept = xr.where(
-                world_market_price_effect,
-                average_standard_yield_world - demand_slope * base_price,
-                demand_intercept,
+            demand_slope, demand_intercept = calibrate_linear_demand(
+                standard_production_local=average_standard_yield_local,
+                standard_production_world=average_standard_yield_world,
+                base_price=base_price,
+                elasticity=p_elas,
+                local_market_price_effect=local_market_price_effect,
+                world_market_price_effect=world_market_price_effect,
             )
 
         # MvdV 190108 corrected error in calculation nyls: it contained total actual demand in NL, but needs to contain actual demand per area
