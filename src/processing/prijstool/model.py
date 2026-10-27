@@ -5,6 +5,7 @@ import pandas as pd
 import xarray as xr
 
 from processing.prijstool.cropdata import create_cropdata_xr
+from processing.prijstool.elasticity import prepare_elasticity
 from processing.prijstool.production import calculate_production_and_costs
 from processing.prijstool.yields import get_standard_yield
 
@@ -53,9 +54,6 @@ class Prijstool:
             index=self.crop_prices.regio_nummer.values,
         )
 
-        # Load data for 'single' crops : Grasland, mais, bieten, granen, boomteelt, fruit
-        prijstool_elasticity_single_crops = self.prijstool_elasticity[cropnam]
-
         # set the calculation arrays
         k6_sce = get_standard_yield(self.cropdata_split_sce, self.params.calc)
         k6_ref = get_standard_yield(self.cropdata_split_ref, self.params.calc)
@@ -79,13 +77,7 @@ class Prijstool:
 
         # step 2 determines the annual price based on the actual production and calculate the welfare impact
         # calibrate the price function
-        prijstool_elasticity_single_crops.columns.name = "Crop"
-        p_elas = prijstool_elasticity_single_crops.T.sort_index().to_xarray()
-        p_elas[["NL aandeel wereldaanbod", "NL aandeel wereldvraag"]] = xr.where(
-            p_elas[["NL aandeel wereldaanbod", "NL aandeel wereldvraag"]] <= 0,
-            1,
-            p_elas[["NL aandeel wereldaanbod", "NL aandeel wereldvraag"]],
-        )
+        p_elas = prepare_elasticity(self.prijstool_elasticity, cropnam)
 
         # set masks for the different price effects
         fixed_price_effect = p_elas["prijseffect"] == 0
