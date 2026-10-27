@@ -2,8 +2,8 @@ import xarray as xr
 
 
 def calibrate_constant_elasticity_demand(
-    standard_production_ref: xr.DataArray,
-    standard_production_ref_world: xr.DataArray,
+    standard_production: xr.DataArray,
+    standard_production_world: xr.DataArray,
     base_price: xr.DataArray,
     elasticity: xr.Dataset,
     local_market_price_effect: xr.DataArray,
@@ -17,9 +17,9 @@ def calibrate_constant_elasticity_demand(
 
     Parameters
     ----------
-    standard_production_ref : xr.DataArray
+    standard_production : xr.DataArray
         Standard reference production by crop and area.
-    standard_production_ref_world : xr.DataArray
+    standard_production_world : xr.DataArray
         Standard reference production by crop for the world market.
     base_price : xr.DataArray
         Base price by crop and area.
@@ -37,13 +37,13 @@ def calibrate_constant_elasticity_demand(
     """
     demand_scale_factor = xr.where(
         local_market_price_effect,
-        standard_production_ref / (base_price ** elasticity["elasticity"]),
+        standard_production / (base_price ** elasticity["elasticity"]),
         0,
     )
 
     demand_scale_factor = xr.where(
         world_market_price_effect,
-        standard_production_ref_world / (base_price ** elasticity["elasticity"]),
+        standard_production_world / (base_price ** elasticity["elasticity"]),
         demand_scale_factor,
     )
 
@@ -57,8 +57,8 @@ def calibrate_constant_elasticity_demand(
 
 
 def calibrate_linear_demand(
-    standard_production_ref: xr.DataArray,
-    standard_production_ref_world: xr.DataArray,
+    standard_production: xr.DataArray,
+    standard_production_world: xr.DataArray,
     base_price: xr.DataArray,
     elasticity: xr.Dataset,
     local_market_price_effect: xr.DataArray,
@@ -72,9 +72,9 @@ def calibrate_linear_demand(
 
     Parameters
     ----------
-    standard_production_ref : xr.DataArray
+    standard_production : xr.DataArray
         Standard reference production by crop and area.
-    standard_production_ref_world : xr.DataArray
+    standard_production_world : xr.DataArray
         Standard reference production by crop for the world market.
     base_price : xr.DataArray
         Base price by crop and area.
@@ -92,13 +92,13 @@ def calibrate_linear_demand(
     """
     demand_slope = xr.where(
         local_market_price_effect,
-        elasticity["elasticity"] * standard_production_ref / base_price,
+        elasticity["elasticity"] * standard_production / base_price,
         1,
     )
 
     demand_slope = xr.where(
         world_market_price_effect,
-        elasticity["elasticity"] * standard_production_ref_world / base_price,
+        elasticity["elasticity"] * standard_production_world / base_price,
         demand_slope,
     )
 
@@ -110,13 +110,13 @@ def calibrate_linear_demand(
 
     demand_intercept = xr.where(
         local_market_price_effect,
-        standard_production_ref - demand_slope * base_price,
+        standard_production - demand_slope * base_price,
         0,
     )
 
     demand_intercept = xr.where(
         world_market_price_effect,
-        standard_production_ref_world - demand_slope * base_price,
+        standard_production_world - demand_slope * base_price,
         demand_intercept,
     )
 
