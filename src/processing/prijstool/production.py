@@ -120,3 +120,83 @@ def aggregate_production_by_crop(
         production_sce_per_crop_world,
         yield_loss_sce_per_crop,
     )
+
+
+def calculate_scenario_yields(
+    standard_production_sce: xr.DataArray,
+    standard_production_sce_world: xr.DataArray,
+    yield_loss_sce: xr.DataArray,
+    yield_loss_sce_per_crop: xr.DataArray,
+    elasticity: xr.Dataset,
+) -> tuple[xr.DataArray, xr.DataArray, xr.DataArray]:
+    """
+    Calculate scenario production after yield losses.
+
+    Parameters
+    ----------
+    standard_production_sce : xr.DataArray
+        Standard scenario production by crop, area, and optionally year.
+    standard_production_sce_world : xr.DataArray
+        Standard scenario production by crop for the world market.
+    yield_loss_sce : xr.DataArray
+        Scenario production loss by crop, area, and year.
+    yield_loss_sce_per_crop : xr.DataArray
+        Scenario production loss aggregated by crop.
+    elasticity : xr.Dataset
+        Elasticity data containing the Dutch share of world demand.
+
+    Returns
+    -------
+    tuple of xr.DataArray
+        Local scenario production after losses, world scenario production
+        after losses, and the Dutch share of world scenario production.
+    """
+    new_yield_local = standard_production_sce - yield_loss_sce
+
+    new_yield_world_per_crop_year = (
+        standard_production_sce_world - yield_loss_sce_per_crop
+    )
+
+    new_yield_local_from_world_per_crop_year = (
+        elasticity["NL aandeel wereldvraag"] * new_yield_world_per_crop_year
+    )
+
+    return (
+        new_yield_local,
+        new_yield_world_per_crop_year,
+        new_yield_local_from_world_per_crop_year,
+    )
+
+
+def calculate_average_standard_production(
+    standard_production_local: xr.DataArray,
+    standard_production_world: xr.DataArray,
+) -> tuple[xr.DataArray, xr.DataArray]:
+    """
+    Calculate average standard production over time when time is present.
+
+    Parameters
+    ----------
+    standard_production_local : xr.DataArray
+        Standard production by crop and area.
+    standard_production_world : xr.DataArray
+        Standard production by crop for the world market.
+
+    Returns
+    -------
+    tuple of xr.DataArray
+        Average local and world standard production.
+    """
+    if "Year" in standard_production_local.dims:
+        average_production_local = standard_production_local.mean("Year")
+
+        average_production_world = standard_production_world.mean("Year")
+
+    else:
+        average_production_local = standard_production_local
+        average_production_world = standard_production_world
+
+    return (
+        average_production_local,
+        average_production_world,
+    )
