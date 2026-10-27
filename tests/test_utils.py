@@ -3,7 +3,6 @@ import numpy as np
 from src.utils import (
     calculate_index,
     get_prijstool_option_runs,
-    read_snakemake_rule,
 )
 
 
