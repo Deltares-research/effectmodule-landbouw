@@ -116,6 +116,8 @@ class Prijstool:
         # DIT IS YREF
 
         # MvdV 181130 added constant elasticity demand function
+
+        # Calibrate demand using reference production
         if self.optConstElas:
             demand_scale_factor = calibrate_constant_elasticity_demand(
                 standard_production=standard_opbrengst_kg_ref,
@@ -147,6 +149,7 @@ class Prijstool:
         # dat is raar maar was eerst ook zo?
         ######################################
 
+        # Calculate scenario production
         (
             new_yield_local,
             new_yield_world_per_crop_year,
@@ -159,6 +162,7 @@ class Prijstool:
             elasticity=p_elas,
         )
 
+        # Calculate average scenario production
         (
             average_standard_yield_local,
             average_standard_yield_world,
@@ -167,6 +171,7 @@ class Prijstool:
             standard_production_world=(standard_opbrengst_kg_sce_per_crop_world),
         )
 
+        # Recalibrate linear demand using average scenario production
         if self.optFixedPrice:
             demand_slope, demand_intercept = calibrate_linear_demand(
                 standard_production_local=average_standard_yield_local,
