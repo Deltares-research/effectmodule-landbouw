@@ -5,6 +5,8 @@ import pandas as pd
 import xarray as xr
 
 from processing.prijstool.cropdata import create_cropdata_xr
+from processing.prijstool.yields import get_standard_yield
+from processing.prijstool.production import calculate_production_and_costs
 
 
 # import utils
@@ -55,40 +57,26 @@ class Prijstool:
         prijstool_elasticity_single_crops = self.prijstool_elasticity[cropnam]
 
         # set the calculation arrays
-        if self.params.calc == "optdervActPot":
-            k6_sce = self.cropdata_split_sce["pot_opbrengst"]
-            k6_ref = self.cropdata_split_ref["pot_opbrengst"]
-        elif self.params.calc == "optdervAct_Actgem":
-            k6_sce = self.cropdata_split_sce["gem_opbrengst"]
-            k6_ref = self.cropdata_split_ref["gem_opbrengst"]
-        elif self.params.calc in [
-            "optdervAct_Actmed",
-            "optdervderv_ActMed",
-            "optdervderv_ActMed_new",
-        ]:
-            k6_sce = self.cropdata_split_sce["act_opbrengst"].median("Year")
-            k6_ref = self.cropdata_split_ref["act_opbrengst"].median("Year")
+        k6_sce = get_standard_yield(self.cropdata_split_sce, self.params.calc)
+        k6_ref = get_standard_yield(self.cropdata_split_ref, self.params.calc)
 
         # step 1 calculate the production and costs
-        areaal_sce = self.cropdata_split_sce["areaal"].mean("Year")
-        areaal_ref = self.cropdata_split_ref["areaal"].mean("Year")
-
-        ############
-        # AREAAL BIJ Y IS NU AREAAL VAN SCENARIO EN NIET VAN DE REF
-        # EN MOET DE K6 DUS VAN DE REF BLIJVEN OF PER SCENARIO?
-        # DUS DIT ,MOET IN DE BASIS OOK AL EEN YREF EN YSCE ZIJN
-        # INCLUSIEF AREAAL VOOR YREF EN YSCE
-
-        standard_opbrengst_kg_ref = areaal_ref * k6_ref * self.multpotyield
-        standard_opbrengst_kg_sce = areaal_sce * k6_sce * self.multpotyield
-        #######################
-
-        droogtederving_kg_sce = (
-            areaal_sce * self.cropdata_split_sce["derv_opbrengst"] * self.multredyield
+        (
+            areaal_sce,
+            areaal_ref,
+            standard_opbrengst_kg_ref,
+            standard_opbrengst_kg_sce,
+            droogtederving_kg_sce,
+            arbeidskosten_sce,
+            energiekosten_sce,
+        ) = calculate_production_and_costs(
+            cropdata_sce=self.cropdata_split_sce,
+            cropdata_ref=self.cropdata_split_ref,
+            standard_yield_sce=k6_sce,
+            standard_yield_ref=k6_ref,
+            multpotyield=self.multpotyield,
+            multredyield=self.multredyield,
         )
-
-        arbeidskosten_sce = areaal_sce * self.cropdata_split_sce["arbeidskosten"]
-        energiekosten_sce = areaal_sce * self.cropdata_split_sce["energiekosten"]
 
         # step 2 determines the annual price based on the actual production and calculate the welfare impact
         # calibrate the price function
