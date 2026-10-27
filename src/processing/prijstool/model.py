@@ -63,7 +63,6 @@ class Prijstool:
         # step 1 calculate the production and costs
         (
             areaal_sce,
-            areaal_ref,
             standard_opbrengst_kg_ref,
             standard_opbrengst_kg_sce,
             droogtederving_kg_sce,
