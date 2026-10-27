@@ -5,8 +5,8 @@ import pandas as pd
 import xarray as xr
 
 from processing.prijstool.cropdata import create_cropdata_xr
-from processing.prijstool.yields import get_standard_yield
 from processing.prijstool.production import calculate_production_and_costs
+from processing.prijstool.yields import get_standard_yield
 
 
 # import utils
