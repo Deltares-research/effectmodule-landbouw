@@ -1,4 +1,5 @@
 import pandas as pd
+import xarray as xr
 
 from processing.prijstool.aggregation import NCPrijs
 
@@ -142,6 +143,69 @@ def create_cropdata(
     )
 
     return cropdata
+
+
+def create_cropdata_xr(
+    cropdata: pd.DataFrame,
+    crop_prices: pd.DataFrame,
+    elasticity: pd.DataFrame,
+) -> xr.Dataset:
+    """
+    Convert crop data to an xarray Dataset and add missing regions.
+
+    Crop numbers are mapped to crop names using the elasticity data.
+    Regions present in the crop-price data but absent from the crop
+    data are added and filled with zeros.
+
+    Parameters
+    ----------
+    cropdata : pd.DataFrame
+        Crop data containing the columns 'Crop', 'Area', and 'Year'.
+    crop_prices : pd.DataFrame
+        Crop-price data containing the 'regio_nummer' column.
+    elasticity : pd.DataFrame
+        Elasticity data containing the mapping between crop numbers
+        and crop names.
+
+    Returns
+    -------
+    xr.Dataset
+        Crop data indexed by Crop, Area, and Year, including missing
+        regions filled with zeros.
+    """
+    crop_name_num = pd.Series(
+        elasticity.columns,
+        index=elasticity.loc["nummer"],
+    )
+
+    cropdata["Cropnum"] = cropdata["Crop"]
+    cropdata["Crop"] = cropdata["Crop"].map(crop_name_num)
+
+    cropdata = cropdata.set_index(["Crop", "Area", "Year"])
+
+    not_present_regions = crop_prices.regio_nummer[
+        ~crop_prices.regio_nummer.isin(cropdata.index.get_level_values("Area").unique())
+    ]
+
+    for region in not_present_regions:
+        add_region = pd.MultiIndex.from_product(
+            [
+                cropdata.index.get_level_values("Crop").unique(),
+                [region],
+                cropdata.index.get_level_values("Year").unique(),
+            ],
+            names=cropdata.index.names,
+        )
+
+        add_region_df = pd.DataFrame(
+            0.0,
+            index=add_region,
+            columns=cropdata.columns,
+        )
+
+        cropdata = pd.concat([cropdata, add_region_df]).sort_index()
+
+    return cropdata.to_xarray().fillna(0)
 
 
 def finalise_cropdata(cropdata: pd.DataFrame, scenario: str) -> pd.DataFrame:
