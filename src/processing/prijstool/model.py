@@ -5,7 +5,11 @@ import pandas as pd
 import xarray as xr
 
 from processing.prijstool.cropdata import create_cropdata_xr
-from processing.prijstool.elasticity import prepare_elasticity
+from processing.prijstool.demand import (
+    calibrate_constant_elasticity_demand,
+    calibrate_linear_demand,
+)
+from processing.prijstool.elasticity import get_price_effect_masks, prepare_elasticity
 from processing.prijstool.prices import prepare_base_prices
 from processing.prijstool.production import (
     aggregate_production_by_crop,
@@ -84,9 +88,11 @@ class Prijstool:
         p_elas = prepare_elasticity(self.prijstool_elasticity, cropnam)
 
         # set masks for the different price effects
-        fixed_price_effect = p_elas["prijseffect"] == 0
-        local_market_price_effect = p_elas["prijseffect"] == 1
-        world_market_price_effect = p_elas["prijseffect"] == 2
+        (
+            fixed_price_effect,
+            local_market_price_effect,
+            world_market_price_effect,
+        ) = get_price_effect_masks(p_elas)
 
         (
             standard_opbrengst_kg_ref_per_crop_world,
@@ -108,49 +114,28 @@ class Prijstool:
         # DIT IS YREF
 
         # MvdV 181130 added constant elasticity demand function
-        if self.optConstElas:  # constant elasticity y=a*p^b with b=elasd
-            # MvdV 181203 make a copy of the elasticities to modify them later
-            demand_scale_factor = xr.where(
-                local_market_price_effect,
-                standard_opbrengst_kg_ref / (base_price ** p_elas["elasticity"]),
-                0,
-            )  # yref
-            demand_scale_factor = xr.where(
-                world_market_price_effect,
-                standard_opbrengst_kg_ref_per_crop_world
-                / (base_price ** p_elas["elasticity"]),
-                demand_scale_factor,
-            )  # yref
-            demand_scale_factor = xr.where(
-                demand_scale_factor == 0, 1, demand_scale_factor
+        if self.optConstElas:
+            demand_scale_factor = calibrate_constant_elasticity_demand(
+                standard_production_ref=standard_opbrengst_kg_ref,
+                standard_production_ref_world=(
+                    standard_opbrengst_kg_ref_per_crop_world
+                ),
+                base_price=base_price,
+                elasticity=p_elas,
+                local_market_price_effect=local_market_price_effect,
+                world_market_price_effect=world_market_price_effect,
             )
 
-        else:  # linear demand function y=demand_slope*p+demand_intercept
-            # demand_slope slope of the demand curve
-            # demand_intercept intercept of the demand curve
-            demand_slope = xr.where(
-                local_market_price_effect,
-                p_elas["elasticity"] * standard_opbrengst_kg_ref / base_price,
-                1,
-            )  # yref
-            demand_slope = xr.where(
-                world_market_price_effect,
-                p_elas["elasticity"]
-                * standard_opbrengst_kg_ref_per_crop_world
-                / base_price,
-                demand_slope,
-            )  # yref
-            demand_slope = xr.where(demand_slope == 0, 1, demand_slope)
-
-            demand_intercept = xr.where(
-                local_market_price_effect,
-                standard_opbrengst_kg_ref - demand_slope * base_price,
-                0,
-            )  # yref
-            demand_intercept = xr.where(
-                world_market_price_effect,
-                standard_opbrengst_kg_ref_per_crop_world - demand_slope * base_price,
-                demand_intercept,
+        else:
+            demand_slope, demand_intercept = calibrate_linear_demand(
+                standard_production_ref=standard_opbrengst_kg_ref,
+                standard_production_ref_world=(
+                    standard_opbrengst_kg_ref_per_crop_world
+                ),
+                base_price=base_price,
+                elasticity=p_elas,
+                local_market_price_effect=local_market_price_effect,
+                world_market_price_effect=world_market_price_effect,
             )
 
         # TOT HIER YREF
