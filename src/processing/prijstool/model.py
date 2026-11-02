@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from processing.prijstool.costs import calculate_variable_irrigation_costs
 from processing.prijstool.cropdata import create_cropdata_xr
 from processing.prijstool.demand import (
     calculate_constant_elasticity_price_and_consumer_surplus,
@@ -20,6 +21,7 @@ from processing.prijstool.production import (
     calculate_scenario_yields,
     reconstruct_local_yield,
 )
+from processing.prijstool.welfare import calculate_welfare_changes
 from processing.prijstool.yields import get_standard_yield
 
 
@@ -232,32 +234,25 @@ class Prijstool:
         # change in producer surplus, consumer surplus and total welfare impact
         # variable_irrigation_costs = arbeidskosten + energiekosten
         # MvdV 191119 doubling of variable irrigation costs (for explanation, see p:\11211541-003-kentalleneffecten\Landbouw\011a Effectmodule Landbouw\src\workflow\Omschrijvingen\beregening_factor2)
-        variable_irrigation_costs = (
-            (1 + (self.perc_prijspeil_beregening / 100))
-            * 2
-            * (arbeidskosten_sce + energiekosten_sce)
-        )
-        # JP 4-9-2025 pak alleen beregeningskosten als deze hoger zijn dan de mediaan (vanwege nieuwe schadedefinitie)
-        variable_irrigation_costs_median = variable_irrigation_costs.median(dim="Year")
-        variable_irrigation_costs_median_broadcasted = xr.concat(
-            [
-                variable_irrigation_costs_median.expand_dims(Year=[year])
-                for year in variable_irrigation_costs.coords["Year"].values
-            ],
-            dim="Year",
-        )
-        variable_irrigation_costs_def = (
-            variable_irrigation_costs - variable_irrigation_costs_median_broadcasted
-        ).where(
-            variable_irrigation_costs >= variable_irrigation_costs_median_broadcasted, 0
+        variable_irrigation_costs_def = calculate_variable_irrigation_costs(
+            arbeidskosten_sce=arbeidskosten_sce,
+            energiekosten_sce=energiekosten_sce,
+            perc_prijspeil_beregening=self.perc_prijspeil_beregening,
         )
 
-        change_producer_surplus = -variable_irrigation_costs_def + xr.where(
-            p_elas["prijseffect"] > 0,
-            ((new_yield_local * new_price) - (standard_opbrengst_kg_sce * base_price)),
-            -(droogtederving_kg_sce * base_price),
+        (
+            change_producer_surplus,
+            change_total_welfare,
+        ) = calculate_welfare_changes(
+            variable_irrigation_costs_def=variable_irrigation_costs_def,
+            new_yield_local=new_yield_local,
+            new_price=new_price,
+            standard_opbrengst_kg_sce=standard_opbrengst_kg_sce,
+            base_price=base_price,
+            droogtederving_kg_sce=droogtederving_kg_sce,
+            change_consumer_surplus=change_consumer_surplus,
+            p_elas=p_elas,
         )
-        change_total_welfare = change_producer_surplus + change_consumer_surplus
 
         # merge data for saving
         merge_data = [
