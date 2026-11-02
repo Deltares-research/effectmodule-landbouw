@@ -16,6 +16,7 @@ from processing.prijstool.production import (
     calculate_average_standard_production,
     calculate_production_and_costs,
     calculate_scenario_yields,
+    reconstruct_local_yield,
 )
 from processing.prijstool.yields import get_standard_yield
 
@@ -183,18 +184,13 @@ class Prijstool:
             )
 
         # MvdV 190108 corrected error in calculation nyls: it contained total actual demand in NL, but needs to contain actual demand per area
-        total_average_standard_yield_area = average_standard_yield_local.sum("Area")
-        total_average_standard_yield_area[total_average_standard_yield_area == 0] = 1
-
-        fraction_average_standard_yield = (
-            average_standard_yield_local / total_average_standard_yield_area
-        )  # fraction per area and crop of total average potential production in NL
-
+        # fraction per area and crop of total average potential production in NL
         # hier wordt de regionale productie teruggerekend uit de fractie
         # en de globale productie. Dit wordt gebruikt om de
         # nieuwe prijs te berekenen.
-        new_yield_local_reconstructed = (
-            fraction_average_standard_yield * new_yield_local_from_world_per_crop_year
+        new_yield_local_reconstructed = reconstruct_local_yield(
+            average_standard_yield_local=average_standard_yield_local,
+            new_yield_local_from_world=(new_yield_local_from_world_per_crop_year),
         )
 
         # new price and change in consumer surplies

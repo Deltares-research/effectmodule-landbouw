@@ -200,3 +200,41 @@ def calculate_average_standard_production(
         average_production_local,
         average_production_world,
     )
+
+
+def reconstruct_local_yield(
+    average_standard_yield_local: xr.DataArray,
+    new_yield_local_from_world: xr.DataArray,
+) -> xr.DataArray:
+    """
+    Reconstruct local production from world-market production.
+
+    The average standard production of each area is expressed as a
+    fraction of the total standard production. These regional fractions
+    are then applied to the local share of world-market production.
+
+    Parameters
+    ----------
+    average_standard_yield_local : xr.DataArray
+        Average standard production by crop and area.
+    new_yield_local_from_world : xr.DataArray
+        Local share of the new world-market production by crop and year.
+
+    Returns
+    -------
+    xr.DataArray
+        Reconstructed local production distributed over the areas.
+    """
+    total_average_standard_yield_area = average_standard_yield_local.sum("Area")
+
+    total_average_standard_yield_area[total_average_standard_yield_area == 0] = 1
+
+    fraction_average_standard_yield = (
+        average_standard_yield_local / total_average_standard_yield_area
+    )
+
+    new_yield_local_reconstructed = (
+        fraction_average_standard_yield * new_yield_local_from_world
+    )
+
+    return new_yield_local_reconstructed
