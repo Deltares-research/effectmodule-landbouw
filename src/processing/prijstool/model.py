@@ -6,6 +6,8 @@ import xarray as xr
 
 from processing.prijstool.cropdata import create_cropdata_xr
 from processing.prijstool.demand import (
+    calculate_constant_elasticity_price_and_consumer_surplus,
+    calculate_linear_price_and_consumer_surplus,
     calibrate_constant_elasticity_demand,
     calibrate_linear_demand,
 )
@@ -195,77 +197,36 @@ class Prijstool:
 
         # new price and change in consumer surplies
         # MvdV 181130 added constant elasticity demand function
-        new_price = base_price.copy()
-
         if self.optConstElas:  # constant elasticity y=a*p^b with b=elasd
-            new_yield_local = xr.where(new_yield_local == 0, 1, new_yield_local)
-            new_yield_world_per_crop_year = xr.where(
-                new_yield_world_per_crop_year == 0, 1, new_yield_world_per_crop_year
-            )
-
-            new_price = xr.where(
-                local_market_price_effect,
-                (new_yield_local / demand_scale_factor) ** (1 / p_elas["elasticity"]),
+            (
                 new_price,
-            )
-            new_price = xr.where(
-                world_market_price_effect,
-                (new_yield_world_per_crop_year / demand_scale_factor)
-                ** (1 / p_elas["elasticity"]),
-                new_price,
-            )
-
-            # MvdV 181203 prevent division by zero when b == 1
-            alt_elasd = xr.where(p_elas["elasticity"] == -1, -9, p_elas["elasticity"])
-
-            change_consumer_surplus = xr.where(
-                p_elas["elasticity"] == -1,
-                demand_scale_factor * np.log(base_price)
-                - demand_scale_factor * np.log(new_price),
-                (demand_scale_factor / (alt_elasd + 1) * base_price ** (alt_elasd + 1))
-                - (
-                    demand_scale_factor / (alt_elasd + 1) * new_price ** (alt_elasd + 1)
-                ),
-            )
-            change_consumer_surplus = xr.where(
-                world_market_price_effect,
-                p_elas["NL aandeel wereldvraag"] * change_consumer_surplus,
                 change_consumer_surplus,
+            ) = calculate_constant_elasticity_price_and_consumer_surplus(
+                new_yield_local=new_yield_local,
+                new_yield_world_per_crop_year=(new_yield_world_per_crop_year),
+                demand_scale_factor=demand_scale_factor,
+                base_price=base_price,
+                p_elas=p_elas,
+                fixed_price_effect=fixed_price_effect,
+                local_market_price_effect=local_market_price_effect,
+                world_market_price_effect=world_market_price_effect,
             )
-            change_consumer_surplus.loc[fixed_price_effect] = 0
 
         else:  # linear demand function y=demand_slope*p+demand_intercept
-            new_price = xr.where(
-                local_market_price_effect,
-                (new_yield_local - demand_intercept) / demand_slope,
-                new_price,
-            )
-            new_price = xr.where(
-                world_market_price_effect,
-                (new_yield_world_per_crop_year - demand_intercept) / demand_slope,
-                new_price,
-            )
 
-            # change_consumer_surplus: change in consumer surplus
-            change_consumer_surplus = xr.where(
-                local_market_price_effect,
-                -(
-                    (new_price - base_price) * new_yield_local
-                    + 0.5
-                    * (new_price - base_price)
-                    * (standard_opbrengst_kg_sce - new_yield_local)
-                ),
-                0,
-            )  # ysce
-            change_consumer_surplus = xr.where(
-                world_market_price_effect,
-                -(
-                    (new_price - base_price) * new_yield_local_reconstructed
-                    + 0.5
-                    * (new_price - base_price)
-                    * (standard_opbrengst_kg_sce - new_yield_local_reconstructed)
-                ),
+            (
+                new_price,
                 change_consumer_surplus,
+            ) = calculate_linear_price_and_consumer_surplus(
+                new_yield_local=new_yield_local,
+                new_yield_world=new_yield_world_per_crop_year,
+                reconstructed_local_yield=(new_yield_local_reconstructed),
+                standard_production_sce=(standard_opbrengst_kg_sce),
+                demand_slope=demand_slope,
+                demand_intercept=demand_intercept,
+                base_price=base_price,
+                local_market_price_effect=(local_market_price_effect),
+                world_market_price_effect=(world_market_price_effect),
             )  # ysce
 
         # change in producer surplus, consumer surplus and total welfare impact
