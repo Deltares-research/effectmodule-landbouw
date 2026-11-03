@@ -70,14 +70,12 @@ def bereken_droogterisico(
     Droogte_Risico : pd.Series
         Berekend droogterisico per gewas en gebied.
     """
-    # dit is een rare regel want er is geen andere dimensie?
-    W_A_med = (
-        median_data["verandering totale welvaart"].groupby(["Crop", "Area"]).mean()
-    )
-
-    W_sce = prijstool_output_sce["verandering totale welvaart"]
-    mean_W_sce = W_sce.groupby(["Crop", "Area"]).mean()
-    Droogte_Risico = -(W_A_med - mean_W_sce)
+    #dit is een rare regel want er is geen andere dimensie?
+    W_A_med = median_data['verandering totale welvaart'].groupby(['Crop', 'Area']).mean()
+    
+    W_sce = prijstool_output_sce['verandering totale welvaart']
+    mean_W_sce = W_sce.groupby(['Crop', 'Area']).mean()
+    Droogte_Risico = mean_W_sce - W_A_med
     return mean_W_sce, Droogte_Risico
 
 
@@ -135,15 +133,13 @@ def bereken_droogterisico_T20(
     Droogte_Risico : pd.Series
         Berekend droogterisico per gewas en gebied.
     """
-
-    # dit is een rare regel want er is geen andere dimensie?
-    W_A_med = (
-        median_data["verandering totale welvaart"].groupby(["Crop", "Area"]).mean()
-    )
-
-    W_sce = prijstool_output_sce["verandering totale welvaart"]
-    T20_W_sce = W_sce.groupby(["Crop", "Area"]).apply(calculate_T20)
-    Droogte_Risico = -(W_A_med - T20_W_sce)
+  
+    #dit is een rare regel want er is geen andere dimensie?
+    W_A_med = median_data['verandering totale welvaart'].groupby(['Crop', 'Area']).mean()
+    
+    W_sce = prijstool_output_sce['verandering totale welvaart']
+    T20_W_sce = W_sce.groupby(['Crop', 'Area']).apply(calculate_T20)
+    Droogte_Risico = T20_W_sce - W_A_med
     return T20_W_sce, Droogte_Risico
 
 
