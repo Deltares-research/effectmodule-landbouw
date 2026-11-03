@@ -3,7 +3,6 @@
 import numpy as np
 import pandas as pd
 
-from processing.prijstool.costs import calculate_variable_irrigation_costs
 from processing.prijstool.cropdata import create_cropdata_xr
 from processing.prijstool.demand import (
     calculate_constant_elasticity_price_and_consumer_surplus,
@@ -22,7 +21,10 @@ from processing.prijstool.production import (
     reconstruct_local_yield,
 )
 from processing.prijstool.results import create_results_dataframe
-from processing.prijstool.welfare import calculate_welfare_changes
+from processing.prijstool.welfare import (
+    calculate_variable_irrigation_costs,
+    calculate_welfare_changes,
+)
 from processing.prijstool.yields import get_standard_yield
 
 
