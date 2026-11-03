@@ -10,8 +10,8 @@ agricom_folder = basefolder / 'Agricom_runZ1/output_AGRICOM'
 
 localfolder = Path(config["paths"]["localfolder"])
 inputfolder = localfolder / 'Invoer'
-interimfolder = localfolder / 'Interim_new2'
-outputfolder = localfolder / 'Output_new2'
+interimfolder = localfolder / 'Interim_new'
+outputfolder = localfolder / 'Output_new'
 
 ref_scenario = config["scenarios"]["reference"]
 scenario = ref_scenario
