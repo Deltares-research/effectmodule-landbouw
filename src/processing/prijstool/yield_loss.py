@@ -48,6 +48,14 @@ def calculate_yield_loss(cropdata, method):
     elif method == "optdervderv_ActMed_new":
         pot_act = cropdata["pot_opbrengst"] - cropdata["act_opbrengst"]
         cropdata["derv_opbrengst"] = pot_act - cropdata["ref_med_derv"]
+        cropdata["derv_opbrengst"] = np.where(
+            cropdata["derv_opbrengst"] < 0, 0, cropdata["derv_opbrengst"]
+        )
+
+        # #test same as old
+        # med_act_opbrengst = cropdata.groupby(['regio', 'landgebruik'])["act_opbrengst"].median()
+        # cropdata['act_opbrengst'] = [med_act_opbrengst.loc[regio, landgebruik] - derv for regio, landgebruik, derv in zip(cropdata.index.get_level_values('regio'), cropdata.index.get_level_values('landgebruik'), cropdata['derv_opbrengst'])]
+        # cropdata['schadeberekening_opbrengst'] = cropdata['act_opbrengst']
 
         # real
         med_act_opbrengst = cropdata.groupby(["regio", "landgebruik"])[
@@ -61,6 +69,7 @@ def calculate_yield_loss(cropdata, method):
                 cropdata["derv_opbrengst"],
             )
         ]
+
     else:
         raise ValueError(f"Unknown calculation method: {method}")
 
