@@ -57,18 +57,18 @@ def calculate_yield_loss(cropdata, method):
         # cropdata['act_opbrengst'] = [med_act_opbrengst.loc[regio, landgebruik] - derv for regio, landgebruik, derv in zip(cropdata.index.get_level_values('regio'), cropdata.index.get_level_values('landgebruik'), cropdata['derv_opbrengst'])]
         # cropdata['schadeberekening_opbrengst'] = cropdata['act_opbrengst']
 
-        # real
-        med_act_opbrengst = cropdata.groupby(["regio", "landgebruik"])[
-            "act_opbrengst"
-        ].median()
-        cropdata["damage_calculation_yield"] = [
-            med_act_opbrengst[r, l] - c
-            for r, l, c in zip(
-                cropdata.index.get_level_values("regio"),
-                cropdata.index.get_level_values("landgebruik"),
-                cropdata["derv_opbrengst"],
-            )
-        ]
+        # # real
+        # med_act_opbrengst = cropdata.groupby(["regio", "landgebruik"])[
+        #     "act_opbrengst"
+        # ].median()
+        # cropdata["damage_calculation_yield"] = [
+        #     med_act_opbrengst[r, l] - c
+        #     for r, l, c in zip(
+        #         cropdata.index.get_level_values("regio"),
+        #         cropdata.index.get_level_values("landgebruik"),
+        #         cropdata["derv_opbrengst"],
+        #     )
+        # ]
 
     else:
         raise ValueError(f"Unknown calculation method: {method}")
