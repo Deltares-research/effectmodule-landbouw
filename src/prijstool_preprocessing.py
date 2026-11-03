@@ -45,7 +45,7 @@ import utils
 from processing.io import load_input_data
 from processing.prijstool.cropdata import create_cropdata, finalise_cropdata
 from processing.prijstool.splitting import apply_crop_splitting
-from processing.prijstool.yield_loss import calculate_yield_loss
+from processing.prijstool.yields import calculate_yield_loss
 from processing.spatial.regions import create_region_grid
 from processing.validation import validate_continuous_years
 
