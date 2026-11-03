@@ -340,8 +340,8 @@ elif params.calc == "optdervderv_ActMed_new":
     # cropdata['schadeberekening_opbrengst'] = cropdata['act_opbrengst'] 
 
     #real
-    #med_act_opbrengst = cropdata.groupby(['regio', 'landgebruik'])["act_opbrengst"].median()
-    #cropdata['damage_calculation_yield'] = [med_act_opbrengst[r, l] - c for r, l, c in zip(cropdata.index.get_level_values('regio'), cropdata.index.get_level_values('landgebruik'), cropdata['derv_opbrengst'])]
+    med_act_opbrengst = cropdata.groupby(['regio', 'landgebruik'])["act_opbrengst"].median()
+    cropdata['damage_calculation_yield'] = [med_act_opbrengst[r, l] - c for r, l, c in zip(cropdata.index.get_level_values('regio'), cropdata.index.get_level_values('landgebruik'), cropdata['derv_opbrengst'])]
 else:
     print("no calculation method given")
 
@@ -357,7 +357,7 @@ cropdata = cropdata[
         "act_opbrengst",
         "pot_opbrengst",
         "areaal",
-       # "damage_calculation_yield",
+        "damage_calculation_yield",
         "derv_opbrengst",
         "ref_med_derv",
         "arbeidskosten",

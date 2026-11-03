@@ -2,7 +2,7 @@
 import pandas as pd
 from pathlib import Path        
 import numpy as np
-from Prijstool_Deltascenarios_Class_rewrite_correct import Prijstool
+from Prijstool_Deltascenarios_Class_rewrite_new_act import Prijstool
 import utils
 
 # %%
@@ -69,7 +69,7 @@ def bereken_droogterisico(prijstool_output_sce: pd.DataFrame, median_data: pd.Da
     
     W_sce = prijstool_output_sce['verandering totale welvaart']
     mean_W_sce = W_sce.groupby(['Crop', 'Area']).mean()
-    Droogte_Risico = -(W_A_med - mean_W_sce)
+    Droogte_Risico = mean_W_sce - W_A_med
     return mean_W_sce, Droogte_Risico
 
 def calculate_T20(damage_series: pd.Series) -> float:
@@ -129,12 +129,12 @@ def bereken_droogterisico_T20(prijstool_output_sce: pd.DataFrame, median_data: p
     
     W_sce = prijstool_output_sce['verandering totale welvaart']
     T20_W_sce = W_sce.groupby(['Crop', 'Area']).apply(calculate_T20)
-    Droogte_Risico = -(W_A_med - T20_W_sce)
+    Droogte_Risico = T20_W_sce - W_A_med
     return T20_W_sce, Droogte_Risico
 
 #%%
 if "snakemake" not in globals():
-    snakefile = r"C:\git_repos\effectmodule_landbouw\snakes\wf_landbouw_test_new"
+    snakefile = r"C:\git_repos\effectmodule_landbouw\snakes\wf_landbouw_test_rewrite"
     snakemake = utils.read_snakemake_rule(snakefile, name="bereken_droogterisico")
 
 input_fns = snakemake.input
