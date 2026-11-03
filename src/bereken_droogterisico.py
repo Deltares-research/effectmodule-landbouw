@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 import utils
-from src.processing.prijstool.model import Prijstool
+from processing.prijstool.model import Prijstool
 
 
 # %%
