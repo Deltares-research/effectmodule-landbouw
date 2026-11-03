@@ -21,6 +21,7 @@ from processing.prijstool.production import (
     calculate_scenario_yields,
     reconstruct_local_yield,
 )
+from processing.prijstool.results import create_results_dataframe
 from processing.prijstool.welfare import calculate_welfare_changes
 from processing.prijstool.yields import get_standard_yield
 
@@ -254,39 +255,18 @@ class Prijstool:
             p_elas=p_elas,
         )
 
-        # merge data for saving
-        merge_data = [
-            standard_opbrengst_kg_sce,
-            droogtederving_kg_sce,
-            change_producer_surplus,
-            change_consumer_surplus,
-            change_total_welfare,
-            variable_irrigation_costs_def,
-            areaal_sce,
-            base_price.broadcast_like(new_price),
-            new_price,
-        ]
-        merge_columns = [
-            "productie",
-            "productiederving",
-            "veranderingen producentensurplus",
-            "verandering consumenten surplus",
-            "verandering totale welvaart",
-            "variabele beregeningskosten",
-            "areaal",
-            "prijs",
-            "nieuwe prijs",
-        ]
-        comb1 = xr.merge([x.rename(n) for x, n in zip(merge_data, merge_columns)])
-
-        # Use cropnamenum to replace index level crops by numbers
-        area_names = area_name_num[comb1.Area.values].values
-
-        # make final columns atc
-        comb1 = comb1.assign_coords(Area=area_names)
-        self.comb1_df = comb1.to_dataframe().sort_index()
-        # TOT EIND
-        ##############################
+        self.comb1_df = create_results_dataframe(
+            standard_opbrengst_kg_sce=standard_opbrengst_kg_sce,
+            droogtederving_kg_sce=droogtederving_kg_sce,
+            change_producer_surplus=change_producer_surplus,
+            change_consumer_surplus=change_consumer_surplus,
+            change_total_welfare=change_total_welfare,
+            variable_irrigation_costs_def=variable_irrigation_costs_def,
+            areaal_sce=areaal_sce,
+            base_price=base_price,
+            new_price=new_price,
+            area_name_num=area_name_num,
+        )
 
     def save_output(self, output_fns):
         self.comb1_df.to_csv(output_fns.outnam1_fn, sep=";", decimal=",")
