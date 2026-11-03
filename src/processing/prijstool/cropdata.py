@@ -2,7 +2,7 @@ import pandas as pd
 import xarray as xr
 
 
-def NCPrijs(
+def aggregate_by_crop_and_region(
     data: xr.DataArray,
     landgebruik: xr.DataArray,
     regio: xr.DataArray,
@@ -124,7 +124,7 @@ def create_cropdata(
 
     # Load Yield
     # MvdV 191128 added switch perha to muliply with ha per cell or not Tru for yields, Slase for costs
-    pot_opbrengst = NCPrijs(
+    pot_opbrengst = aggregate_by_crop_and_region(
         potASC_combi[potASC_combi.time.dt.year.isin(years)],
         landgebruik_sce,
         regios_ar,
@@ -138,7 +138,7 @@ def create_cropdata(
     )
 
     act_opbrengst = (
-        NCPrijs(
+        aggregate_by_crop_and_region(
             act_dry_ASC_combi[act_dry_ASC_combi.time.dt.year.isin(years)],
             landgebruik_sce,
             regios_ar,
@@ -150,7 +150,7 @@ def create_cropdata(
     )
 
     ref_med_derving = (
-        NCPrijs(
+        aggregate_by_crop_and_region(
             Ylderv_med_combi,
             landgebruik_ref,
             regios_ar,
@@ -164,7 +164,7 @@ def create_cropdata(
     # Load Labor costs
     # MvdV 191128 added switch perha to muliply with ha per cell or not Tru for yields, Slase for costs
     arbeidskosten = (
-        NCPrijs(
+        aggregate_by_crop_and_region(
             arbdASC_sce[arbdASC_sce.time.dt.year.isin(years)],
             landgebruik_sce,
             regios_ar,
@@ -177,7 +177,7 @@ def create_cropdata(
 
     # Load Energy costs
     energiekosten = (
-        NCPrijs(
+        aggregate_by_crop_and_region(
             enrgASC_sce[enrgASC_sce.time.dt.year.isin(years)],
             landgebruik_sce,
             regios_ar,
