@@ -73,7 +73,7 @@ def calculate_median_welfare(
     return median_welfare
 
 
-def bereken_droogterisico(
+def calculate_drought_risk(
     prijstool_output_sce: pd.DataFrame, median_welfare: pd.Series
 ) -> tuple[pd.Series, pd.Series]:
     """
@@ -90,14 +90,14 @@ def bereken_droogterisico(
     -------
     mean_W_sce : pd.Series
         Gemiddelde verandering in totale welvaart per gewas en gebied.
-    Droogte_Risico : pd.Series
+    drought_risk : pd.Series
         Berekend droogterisico per gewas en gebied.
     """
 
     W_sce = prijstool_output_sce["verandering totale welvaart"]
     mean_W_sce = W_sce.groupby(["Crop", "Area"]).mean()
-    Droogte_Risico = mean_W_sce - median_welfare
-    return mean_W_sce, Droogte_Risico
+    drought_risk = mean_W_sce - median_welfare
+    return mean_W_sce, drought_risk
 
 
 def calculate_T20(damage_series: pd.Series) -> float:
@@ -134,7 +134,7 @@ def calculate_T20(damage_series: pd.Series) -> float:
     return T20
 
 
-def bereken_droogterisico_T20(
+def calculate_T20_drought_risk(
     prijstool_output_sce: pd.DataFrame, median_welfare: pd.Series
 ) -> tuple[pd.Series, pd.Series]:
     """
@@ -149,16 +149,16 @@ def bereken_droogterisico_T20(
 
     Returns
     -------
-    T20_W_sce : pd.Series
+    t20_welfare_sce : pd.Series
         Gemiddelde verandering in totale welvaart per gewas en gebied voor de T20-situatie.
-    Droogte_Risico : pd.Series
+    drought_risk : pd.Series
         Berekend droogterisico per gewas en gebied.
     """
 
     W_sce = prijstool_output_sce["verandering totale welvaart"]
-    T20_W_sce = W_sce.groupby(["Crop", "Area"]).apply(calculate_T20)
-    Droogte_Risico = T20_W_sce - median_welfare
-    return T20_W_sce, Droogte_Risico
+    t20_welfare_sce = W_sce.groupby(["Crop", "Area"]).apply(calculate_T20)
+    drought_risk = t20_welfare_sce - median_welfare
+    return t20_welfare_sce, drought_risk
 
 
 def main(snakemake) -> None:
@@ -209,8 +209,8 @@ def main(snakemake) -> None:
 
     median_welfare = calculate_median_welfare(p_A_med.comb1_df)
 
-    _, droogte_risico_sce = bereken_droogterisico(prijstool_output_sce, median_welfare)
-    _, droogte_risico_sce_T20 = bereken_droogterisico_T20(
+    _, droogte_risico_sce = calculate_drought_risk(prijstool_output_sce, median_welfare)
+    _, droogte_risico_sce_T20 = calculate_T20_drought_risk(
         prijstool_output_sce, median_welfare
     )
 
