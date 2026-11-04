@@ -82,3 +82,24 @@ def create_results_dataframe(
     comb1_df = comb1.to_dataframe().sort_index()
 
     return comb1_df
+
+
+def aggregate_welfare_by_area_and_year(
+    results: pd.DataFrame,
+) -> pd.DataFrame:
+    """Aggregate total welfare change by area and year."""
+    return results["verandering totale welvaart"].unstack("Area").groupby("Year").sum()
+
+
+def aggregate_welfare_by_crop_and_year(
+    results: pd.DataFrame,
+) -> pd.DataFrame:
+    """Aggregate total welfare change by crop and year."""
+    return results["verandering totale welvaart"].unstack("Crop").groupby("Year").sum()
+
+
+def aggregate_welfare_by_crop_and_area(
+    results: pd.DataFrame,
+) -> pd.DataFrame:
+    """Calculate average total welfare change by crop and area."""
+    return results["verandering totale welvaart"].unstack("Crop").groupby("Area").mean()

@@ -20,7 +20,12 @@ from processing.prijstool.production import (
     calculate_scenario_yields,
     reconstruct_local_yield,
 )
-from processing.prijstool.results import create_results_dataframe
+from processing.prijstool.results import (
+    aggregate_welfare_by_area_and_year,
+    aggregate_welfare_by_crop_and_area,
+    aggregate_welfare_by_crop_and_year,
+    create_results_dataframe,
+)
 from processing.prijstool.welfare import (
     calculate_variable_irrigation_costs,
     calculate_welfare_changes,
@@ -274,30 +279,15 @@ class Prijstool:
         self.comb1_df.to_csv(output_fns.outnam1_fn, sep=";", decimal=",")
 
         # per area and year
-        twpay_df = (
-            self.comb1_df["verandering totale welvaart"]
-            .unstack("Area")
-            .groupby("Year")
-            .sum()
-        )
+        twpay_df = aggregate_welfare_by_area_and_year(self.comb1_df)
         twpay_df.to_csv(output_fns.twpaynam_fn, sep=";", decimal=",")
 
         # per crop and year
-        slpcy_df = (
-            self.comb1_df["verandering totale welvaart"]
-            .unstack("Crop")
-            .groupby("Year")
-            .sum()
-        )
+        slpcy_df = aggregate_welfare_by_crop_and_year(self.comb1_df)
         slpcy_df.to_csv(output_fns.twpcyfil_fn, sep=";", decimal=",")
 
         # per crop and area, average over years
-        twpca_df = (
-            self.comb1_df["verandering totale welvaart"]
-            .unstack("Crop")
-            .groupby("Area")
-            .mean()
-        )
+        twpca_df = aggregate_welfare_by_crop_and_area(self.comb1_df)
         twpca_df.to_csv(output_fns.twpcafil_fn, sep=";", decimal=",")
 
 
