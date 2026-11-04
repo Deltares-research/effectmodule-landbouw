@@ -74,7 +74,7 @@ def calculate_median_welfare(
 
 
 def bereken_droogterisico(
-    prijstool_output_sce: pd.DataFrame, median_data: pd.DataFrame
+    prijstool_output_sce: pd.DataFrame, median_welfare: pd.Series
 ) -> tuple[pd.Series, pd.Series]:
     """
     Bereken droogterisico op basis van prijstool output en mediane data.
@@ -83,8 +83,8 @@ def bereken_droogterisico(
     ----------
     prijstool_output_sce : pd.DataFrame
         Output van de prijstool voor een scenario.
-    median_data : pd.DataFrame
-        Mediane data van veranderingen in totale welvaart.
+    median_welfare : pd.Series
+        Median-scenario welfare per crop and area.
 
     Returns
     -------
@@ -93,12 +93,10 @@ def bereken_droogterisico(
     Droogte_Risico : pd.Series
         Berekend droogterisico per gewas en gebied.
     """
-    # dit is een rare regel want er is geen andere dimensie?
-    W_A_med = calculate_median_welfare(median_data)
 
     W_sce = prijstool_output_sce["verandering totale welvaart"]
     mean_W_sce = W_sce.groupby(["Crop", "Area"]).mean()
-    Droogte_Risico = mean_W_sce - W_A_med
+    Droogte_Risico = mean_W_sce - median_welfare
     return mean_W_sce, Droogte_Risico
 
 
@@ -137,7 +135,7 @@ def calculate_T20(damage_series: pd.Series) -> float:
 
 
 def bereken_droogterisico_T20(
-    prijstool_output_sce: pd.DataFrame, median_data: pd.DataFrame
+    prijstool_output_sce: pd.DataFrame, median_welfare: pd.Series
 ) -> tuple[pd.Series, pd.Series]:
     """
     Bereken droogterisico op basis van prijstool output en mediane data.
@@ -146,8 +144,8 @@ def bereken_droogterisico_T20(
     ----------
     prijstool_output_sce : pd.DataFrame
         Output van de prijstool voor een scenario.
-    median_data : pd.DataFrame
-        Mediane data van veranderingen in totale welvaart.
+    median_welfare : pd.Series
+        Median-scenario welfare per crop and area.
 
     Returns
     -------
@@ -157,12 +155,9 @@ def bereken_droogterisico_T20(
         Berekend droogterisico per gewas en gebied.
     """
 
-    # dit is een rare regel want er is geen andere dimensie?
-    W_A_med = calculate_median_welfare(median_data)
-
     W_sce = prijstool_output_sce["verandering totale welvaart"]
     T20_W_sce = W_sce.groupby(["Crop", "Area"]).apply(calculate_T20)
-    Droogte_Risico = T20_W_sce - W_A_med
+    Droogte_Risico = T20_W_sce - median_welfare
     return T20_W_sce, Droogte_Risico
 
 
@@ -212,11 +207,13 @@ def main(snakemake) -> None:
     )
     p_A_med.run()
 
+    median_welfare = calculate_median_welfare(p_A_med.comb1_df)
+
     mean_W_sce, droogte_risico_sce = bereken_droogterisico(
-        prijstool_output_sce, p_A_med.comb1_df
+        prijstool_output_sce, median_welfare
     )
-    mean_W_sce, droogte_risico_sce_T20 = bereken_droogterisico_T20(
-        prijstool_output_sce, p_A_med.comb1_df
+    T20_W_sce, droogte_risico_sce_T20 = bereken_droogterisico_T20(
+        prijstool_output_sce, median_welfare
     )
 
     # %%
