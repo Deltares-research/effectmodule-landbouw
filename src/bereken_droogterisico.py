@@ -100,7 +100,7 @@ def calculate_drought_risk(
     return mean_W_sce, drought_risk
 
 
-def calculate_T20(damage_series: pd.Series) -> float:
+def calculate_t20(damage_series: pd.Series) -> float:
     """
     Bereken droogteschade van een T20 jaar.
 
@@ -130,11 +130,11 @@ def calculate_T20(damage_series: pd.Series) -> float:
     ).sort_values("herhalingstijd", ascending=True)
 
     # interpolate where return period is 20
-    T20 = np.interp(20, merged["herhalingstijd"], merged["schade"])
-    return T20
+    t20 = np.interp(20, merged["herhalingstijd"], merged["schade"])
+    return t20
 
 
-def calculate_T20_drought_risk(
+def calculate_t20_drought_risk(
     prijstool_output_sce: pd.DataFrame, median_welfare: pd.Series
 ) -> tuple[pd.Series, pd.Series]:
     """
@@ -156,7 +156,7 @@ def calculate_T20_drought_risk(
     """
 
     W_sce = prijstool_output_sce["verandering totale welvaart"]
-    t20_welfare_sce = W_sce.groupby(["Crop", "Area"]).apply(calculate_T20)
+    t20_welfare_sce = W_sce.groupby(["Crop", "Area"]).apply(calculate_t20)
     drought_risk = t20_welfare_sce - median_welfare
     return t20_welfare_sce, drought_risk
 
@@ -210,7 +210,7 @@ def main(snakemake) -> None:
     median_welfare = calculate_median_welfare(p_A_med.comb1_df)
 
     _, droogte_risico_sce = calculate_drought_risk(prijstool_output_sce, median_welfare)
-    _, droogte_risico_sce_T20 = calculate_T20_drought_risk(
+    _, droogte_risico_sce_T20 = calculate_t20_drought_risk(
         prijstool_output_sce, median_welfare
     )
 
