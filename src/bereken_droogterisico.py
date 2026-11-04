@@ -209,10 +209,8 @@ def main(snakemake) -> None:
 
     median_welfare = calculate_median_welfare(p_A_med.comb1_df)
 
-    mean_W_sce, droogte_risico_sce = bereken_droogterisico(
-        prijstool_output_sce, median_welfare
-    )
-    T20_W_sce, droogte_risico_sce_T20 = bereken_droogterisico_T20(
+    _, droogte_risico_sce = bereken_droogterisico(prijstool_output_sce, median_welfare)
+    _, droogte_risico_sce_T20 = bereken_droogterisico_T20(
         prijstool_output_sce, median_welfare
     )
 
