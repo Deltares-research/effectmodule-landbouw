@@ -50,6 +50,29 @@ def get_hypothetical_median_year_data(cropdata: pd.DataFrame) -> pd.DataFrame:
     return medyear_cropdata_df
 
 
+def calculate_median_welfare(
+    median_data: pd.DataFrame,
+) -> pd.Series:
+    """
+    Calculate median-scenario welfare per crop and area.
+
+    Parameters
+    ----------
+    median_data : pd.DataFrame
+        Prijstool output for the hypothetical median scenario.
+
+    Returns
+    -------
+    pd.Series
+        Mean total welfare change per crop and area.
+    """
+    median_welfare = (
+        median_data["verandering totale welvaart"].groupby(["Crop", "Area"]).mean()
+    )
+
+    return median_welfare
+
+
 def bereken_droogterisico(
     prijstool_output_sce: pd.DataFrame, median_data: pd.DataFrame
 ) -> tuple[pd.Series, pd.Series]:
@@ -71,9 +94,7 @@ def bereken_droogterisico(
         Berekend droogterisico per gewas en gebied.
     """
     # dit is een rare regel want er is geen andere dimensie?
-    W_A_med = (
-        median_data["verandering totale welvaart"].groupby(["Crop", "Area"]).mean()
-    )
+    W_A_med = calculate_median_welfare(median_data)
 
     W_sce = prijstool_output_sce["verandering totale welvaart"]
     mean_W_sce = W_sce.groupby(["Crop", "Area"]).mean()
@@ -137,9 +158,7 @@ def bereken_droogterisico_T20(
     """
 
     # dit is een rare regel want er is geen andere dimensie?
-    W_A_med = (
-        median_data["verandering totale welvaart"].groupby(["Crop", "Area"]).mean()
-    )
+    W_A_med = calculate_median_welfare(median_data)
 
     W_sce = prijstool_output_sce["verandering totale welvaart"]
     T20_W_sce = W_sce.groupby(["Crop", "Area"]).apply(calculate_T20)
