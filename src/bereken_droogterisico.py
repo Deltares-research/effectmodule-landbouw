@@ -70,11 +70,13 @@ def bereken_droogterisico(
     Droogte_Risico : pd.Series
         Berekend droogterisico per gewas en gebied.
     """
-    #dit is een rare regel want er is geen andere dimensie?
-    W_A_med = median_data['verandering totale welvaart'].groupby(['Crop', 'Area']).mean()
-    
-    W_sce = prijstool_output_sce['verandering totale welvaart']
-    mean_W_sce = W_sce.groupby(['Crop', 'Area']).mean()
+    # dit is een rare regel want er is geen andere dimensie?
+    W_A_med = (
+        median_data["verandering totale welvaart"].groupby(["Crop", "Area"]).mean()
+    )
+
+    W_sce = prijstool_output_sce["verandering totale welvaart"]
+    mean_W_sce = W_sce.groupby(["Crop", "Area"]).mean()
     Droogte_Risico = mean_W_sce - W_A_med
     return mean_W_sce, Droogte_Risico
 
@@ -133,64 +135,89 @@ def bereken_droogterisico_T20(
     Droogte_Risico : pd.Series
         Berekend droogterisico per gewas en gebied.
     """
-  
-    #dit is een rare regel want er is geen andere dimensie?
-    W_A_med = median_data['verandering totale welvaart'].groupby(['Crop', 'Area']).mean()
-    
-    W_sce = prijstool_output_sce['verandering totale welvaart']
-    T20_W_sce = W_sce.groupby(['Crop', 'Area']).apply(calculate_T20)
+
+    # dit is een rare regel want er is geen andere dimensie?
+    W_A_med = (
+        median_data["verandering totale welvaart"].groupby(["Crop", "Area"]).mean()
+    )
+
+    W_sce = prijstool_output_sce["verandering totale welvaart"]
+    T20_W_sce = W_sce.groupby(["Crop", "Area"]).apply(calculate_T20)
     Droogte_Risico = T20_W_sce - W_A_med
     return T20_W_sce, Droogte_Risico
 
 
-# %%
+def main(snakemake) -> None:
+    """
+    Calculate mean and T20 drought risk for the agricultural scenario.
+
+    Workflow:
+    Loads Prijstool input and output data, constructs a hypothetical median
+    production scenario, runs the Prijstool for that scenario, calculates
+    mean and T20 drought risk, and writes the results to Excel.
+
+    Parameters
+    ----------
+    snakemake
+        Snakemake object containing the input files, output files,
+        and parameters required by the workflow.
+    """
+
+    input_fns = snakemake.input
+    params = snakemake.params
+    output_fns = snakemake.output
+
+    Prijstool_elasticity = pd.read_csv(input_fns.elasticity_fn, index_col=0)
+    Prijstool_elasticity = Prijstool_elasticity.drop("gewashoofd").astype(float)
+
+    crop_prices = pd.read_csv(input_fns.crop_prices_fn, index_col=0)
+
+    prijstool_output_sce = pd.read_csv(
+        input_fns.sce_output_fn, index_col=[0, 1, 2], sep=";", decimal=","
+    )
+
+    cropdata_split_sce = pd.read_csv(input_fns.cropdata_split_sce_fn, index_col=0)
+    cropdata_split_ref = pd.read_csv(input_fns.cropdata_split_ref_fn, index_col=0)
+
+    # %%
+    # calculate droogterisico voor scenario
+    # select the year with the median act_opbrengst for each area and crop
+    medyear_cropdata_sce = get_hypothetical_median_year_data(cropdata_split_sce)
+
+    p_A_med = Prijstool(
+        Prijstool_elasticity,
+        crop_prices,
+        medyear_cropdata_sce.copy(),
+        cropdata_split_ref.copy(),
+        params,
+    )
+    p_A_med.run()
+
+    mean_W_sce, droogte_risico_sce = bereken_droogterisico(
+        prijstool_output_sce, p_A_med.comb1_df
+    )
+    mean_W_sce, droogte_risico_sce_T20 = bereken_droogterisico_T20(
+        prijstool_output_sce, p_A_med.comb1_df
+    )
+
+    # %%
+    # print(WE_totaal, WE_niet_droogte, toename_droogterisico, WE_landgebruik, WE_klimaat_beregening, WE_klimaat_T_CO2)
+    # Voeg resultaten toe aan een DataFrame
+    resultaten_df = pd.DataFrame(
+        {
+            "Droogterisico": droogte_risico_sce,
+            "Droogterisico_T20": droogte_risico_sce_T20,
+        }
+    )
+
+    # Opslaan naar een CSV-bestand
+    resultaten_df.to_excel(output_fns.droogterisico_fn)
+
+    # %%
+
+
 if "snakemake" not in globals():
     snakefile = Path(__file__).parent.parent / "workflows" / "wf_landbouw_test.smk"
     snakemake = utils.read_snakemake_rule(snakefile, name="bereken_droogterisico")
 
-input_fns = snakemake.input
-params = snakemake.params
-output_fns = snakemake.output
-
-Prijstool_elasticity = pd.read_csv(input_fns.elasticity_fn, index_col=0)
-Prijstool_elasticity = Prijstool_elasticity.drop("gewashoofd").astype(float)
-
-Crop_prices = pd.read_csv(input_fns.crop_prices_fn, index_col=0)
-
-prijstool_output_sce = pd.read_csv(
-    input_fns.sce_output_fn, index_col=[0, 1, 2], sep=";", decimal=","
-)
-
-cropdata_split_sce = pd.read_csv(input_fns.cropdata_split_sce_fn, index_col=0)
-cropdata_split_ref = pd.read_csv(input_fns.cropdata_split_ref_fn, index_col=0)
-
-# %%
-# calculate droogterisico voor scenario
-# select the year with the median act_opbrengst for each area and crop
-medyear_cropdata_sce = get_hypothetical_median_year_data(cropdata_split_sce)
-
-p_A_med = Prijstool(
-    Prijstool_elasticity,
-    Crop_prices,
-    medyear_cropdata_sce.copy(),
-    cropdata_split_ref.copy(),
-    params,
-)
-p_A_med.run()
-
-mean_W_sce, droogte_risico_sce = bereken_droogterisico(
-    prijstool_output_sce, p_A_med.comb1_df
-)
-mean_W_sce, droogte_risico_sce_T20 = bereken_droogterisico_T20(
-    prijstool_output_sce, p_A_med.comb1_df
-)
-
-# %%
-# print(WE_totaal, WE_niet_droogte, toename_droogterisico, WE_landgebruik, WE_klimaat_beregening, WE_klimaat_T_CO2)
-# Voeg resultaten toe aan een DataFrame
-resultaten_df = pd.DataFrame(
-    {"Droogterisico": droogte_risico_sce, "Droogterisico_T20": droogte_risico_sce_T20}
-)
-
-# Opslaan naar een CSV-bestand
-resultaten_df.to_excel(output_fns.droogterisico_fn)
+main(snakemake)
