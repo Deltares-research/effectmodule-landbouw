@@ -33,7 +33,7 @@ def main(snakemake) -> None:
         index_col=[0, 1],
     )
     regio_df = regio_df.groupby("Area").sum()
-    regio_df["Scenario"] = "REF2017BP18"
+    regio_df["Scenario"] = snakemake.params.scenario
 
     regio_df["Hoofdregio"] = region_mapping[regio_df.index].values
 

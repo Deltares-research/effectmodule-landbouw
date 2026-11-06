@@ -163,11 +163,9 @@ rule risico_hoofdregio:
         subregio_fn = risico_subregio_fn,
         hoofdregio_fn = risico_hoofdregio_fn,
         droogterisico_fn = droogterisico_fn
+    params:
+        scenario = scenario
     output:
         droogterisico_hoofdregios_fn = risico_hoofdregio_droogterisico_hoofdregios_fn
     script:
         risico_hoofdregio_script
-
-rule run_test:
-    input:
-        droogterisico_hoofdregios_fn = risico_hoofdregio_droogterisico_hoofdregios_fn
