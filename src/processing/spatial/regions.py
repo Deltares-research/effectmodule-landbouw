@@ -1,6 +1,7 @@
 import geopandas as gpd
 import imod
 import numpy as np
+import pandas as pd
 import xarray as xr
 
 
@@ -35,3 +36,42 @@ def create_region_grid(
     )
 
     return region_grid
+
+
+def create_region_mapping(
+    subregion_path,
+    main_region_path,
+) -> pd.Series:
+    """
+    Map subregions to main regions using a spatial join.
+
+    Parameters
+    ----------
+    subregion_path
+        Path to the subregion geometry file.
+    main_region_path
+        Path to the main-region geometry file.
+
+    Returns
+    -------
+    pd.Series
+        Main-region name indexed by subregion name.
+    """
+    subregions = gpd.read_file(subregion_path)
+    subregions["geometry"] = subregions.representative_point()
+
+    main_regions = gpd.read_file(main_region_path)
+
+    joined_regions = gpd.sjoin(
+        subregions,
+        main_regions,
+        how="left",
+        predicate="within",
+    )
+
+    region_mapping = pd.Series(
+        joined_regions["regionaam"].values,
+        index=joined_regions["Naam"].values,
+    )
+
+    return region_mapping
