@@ -24,23 +24,25 @@ def get_hypothetical_median_year_data(cropdata: pd.DataFrame) -> pd.DataFrame:
     pd.DataFrame
         DataFrame with the median year data for each crop and area combination.
     """
+    cropdata = cropdata.copy()
+
     # Drop the 'Scenario' column as it is not needed for median calculation
     cropdata = cropdata.drop("Scenario", axis=1)
 
-    medyear_cropdata = []
+    median_rows = []
     # Group by 'Crop' and 'Area' to calculate median for each group
-    for (crop, area), grp in cropdata.groupby(["Crop", "Area"]):
+    for (crop, area), group in cropdata.groupby(["Crop", "Area"]):
         # Calculate the median value of 'act_opbrengst' for the group
-        med_value = grp["act_opbrengst"].median()
+        median_yield = group["act_opbrengst"].median()
 
         # Find the year with 'act_opbrengst' value closest to the median
-        med_idx = abs(grp["act_opbrengst"] - med_value).idxmin()
-        med_year = grp.loc[med_idx]
+        median_row_index = (group["act_opbrengst"] - median_yield).abs().idxmin()
+        median_row = group.loc[median_row_index]
 
-        medyear_cropdata.append(med_year)
+        median_rows.append(median_row)
 
     # Concatenate the list of median year data into a DataFrame
-    medyear_cropdata_df = pd.concat(medyear_cropdata, axis=1).T
+    medyear_cropdata_df = pd.concat(median_rows, axis=1).T
     # Drop the 'Year' column and convert data to float
     medyear_cropdata_df = medyear_cropdata_df.drop("Year", axis=1).astype(float)
     # Add 'derv_opbrengst' column with value 0 and 'Year' column with value 'med'
@@ -177,21 +179,17 @@ def main(snakemake) -> None:
         and parameters required by the workflow.
     """
 
-    input_fns = snakemake.input
-    params = snakemake.params
-    output_fns = snakemake.output
-
-    Prijstool_elasticity = pd.read_csv(input_fns.elasticity_fn, index_col=0)
+    Prijstool_elasticity = pd.read_csv(snakemake.input.elasticity_fn, index_col=0)
     Prijstool_elasticity = Prijstool_elasticity.drop("gewashoofd").astype(float)
 
-    crop_prices = pd.read_csv(input_fns.crop_prices_fn, index_col=0)
+    crop_prices = pd.read_csv(snakemake.input.crop_prices_fn, index_col=0)
 
     prijstool_output_sce = pd.read_csv(
-        input_fns.sce_output_fn, index_col=[0, 1, 2], sep=";", decimal=","
+        snakemake.input.sce_output_fn, index_col=[0, 1, 2], sep=";", decimal=","
     )
 
-    cropdata_split_sce = pd.read_csv(input_fns.cropdata_split_sce_fn, index_col=0)
-    cropdata_split_ref = pd.read_csv(input_fns.cropdata_split_ref_fn, index_col=0)
+    cropdata_split_sce = pd.read_csv(snakemake.input.cropdata_split_sce_fn, index_col=0)
+    cropdata_split_ref = pd.read_csv(snakemake.input.cropdata_split_ref_fn, index_col=0)
 
     # %%
     # calculate droogterisico voor scenario
@@ -203,7 +201,7 @@ def main(snakemake) -> None:
         crop_prices,
         medyear_cropdata_sce.copy(),
         cropdata_split_ref.copy(),
-        params,
+        snakemake.params,
     )
     p_A_med.run()
 
@@ -225,7 +223,7 @@ def main(snakemake) -> None:
     )
 
     # Opslaan naar een CSV-bestand
-    resultaten_df.to_excel(output_fns.droogterisico_fn)
+    resultaten_df.to_excel(snakemake.output.droogterisico_fn)
 
     # %%
 
