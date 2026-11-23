@@ -3,7 +3,7 @@ from pathlib import Path
 
 import imod
 
-from src.input_processing.fao import (
+from input_processing.fao import (
     FAO_LGN_CLASSES,
     calculate_fao_yields,
     create_ky_grid,

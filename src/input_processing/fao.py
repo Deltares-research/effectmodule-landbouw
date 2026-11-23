@@ -42,7 +42,6 @@ Opmerkingen
 """
 
 import datetime
-from datetime import datetime as dt_datetime
 from pathlib import Path
 
 import imod
@@ -295,87 +294,3 @@ YLD_POT_BOLLEN = 303748
 YLD_POT_OVERIG = 8290
 
 FAO_LGN_CLASSES = [6, 7, 9, 10, 21]
-
-
-def main() -> None:
-    start_time = dt_datetime.now()
-
-    # Parameters
-    startjaar = 2014
-    eindjaar = 2015
-
-    # Paths
-    path_lgn = Path(
-        "p:/doorontwikkeling-dpzw-effectmodule/"
-        "Landbouw/Data/LGN/LHM_4.3.3/LGN250.IDF"
-    )
-
-    path_data = (
-        r"p:\archivedprojects\11210362-dpzw-basisprognoses" r"\bp-zw-24\postprocessed"
-    )
-
-    path_output = Path(
-        "p:/doorontwikkeling-dpzw-effectmodule/" "Landbouw/Data/FAO schades/"
-    )
-
-    folder = Path(path_data) / "REF2028" / "REF2028a"
-
-    tpot_files = [
-        folder / f"Tpot_{year}0101000000.asc" for year in range(startjaar, eindjaar + 1)
-    ]
-
-    tact_files = [
-        folder / f"Tact_{year}0101000000.asc" for year in range(startjaar, eindjaar + 1)
-    ]
-
-    lgn = imod.idf.open(path_lgn)
-
-    # # Specificatie langjarige grids
-    # yldpot_langjarig = imod.idf.open(r'g:\LHM_modelruns\model_v4.3\40_jarige_run\runs\postprocessing\Droogteschade_FAO\pot_opbrengst_LHM4.3WOF_1980-2022_WOFOST.idf')
-    # tpot_langjarig = imod.idf.open(r'g:\LHM_modelruns\model_v4.3\40_jarige_run\runs\postprocessing\Droogteschade_FAO\Tpot_LHM4.3WOF_1980-2022.idf')
-
-    # Create FAO crop-specific grids
-    ky = create_ky_grid(lgn)
-    yldpot_langjarig = create_potential_yield_grid(lgn)
-
-    ## Bereken Tpot per gewas per subregio
-    tpot_langjarig = prepare_reference_tpot(tpot_files, lgn, FAO_LGN_CLASSES)
-
-    valid_reference_tpot = tpot_langjarig.notnull() & (tpot_langjarig != 0)
-
-    ## transpiratie inlezen
-    msw_tpot = load_transpiration(tpot_files)
-    msw_tact = load_transpiration(tact_files)
-
-    # restrict msw_tact and msw_tpot to valid reference areas
-    msw_tpot = msw_tpot.where(valid_reference_tpot)
-    msw_tact = msw_tact.where(valid_reference_tpot)
-
-    ## Opbrengst berekenen
-    opbrengst = calculate_fao_yields(
-        startjaar, eindjaar, msw_tact, msw_tpot, tpot_langjarig, yldpot_langjarig, ky
-    )
-
-    ## Wegschrijven
-    imod.idf.save(
-        path_output.joinpath("actuele_opbrengst.idf"),
-        opbrengst["actueel"],
-        pattern="{name}_{time.year}.idf",
-    )
-    imod.idf.save(
-        path_output.joinpath("potentiele_opbrengst.idf"),
-        opbrengst["potentieel"],
-        pattern="{name}_{time.year}.idf",
-    )
-    imod.idf.save(
-        path_output.joinpath("relatieve_opbrengst.idf"),
-        opbrengst["relatief"],
-        pattern="{name}_{time.year}.idf",
-    )
-
-    end_time = dt_datetime.now()
-    print(f"Duration: {end_time - start_time}")
-
-
-if __name__ == "__main__":
-    main()
