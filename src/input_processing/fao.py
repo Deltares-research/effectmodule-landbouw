@@ -50,7 +50,7 @@ import numpy as np
 import xarray as xr
 
 
-def create_ky_grid(lgn):
+def create_ky_grid(lgn: xr.DataArray) -> xr.DataArray:
     """Maak een grid met ky-factoren"""
     ky = xr.full_like(lgn, np.nan, dtype=float)
     ky = ky.where(lgn != 1, 1.11)  # Gras 1.11 (Gras_maaien, gekalibreerd met WOFOST)
@@ -76,7 +76,7 @@ def create_ky_grid(lgn):
     return ky
 
 
-def create_potential_yield_grid(lgn):
+def create_potential_yield_grid(lgn: xr.DataArray) -> xr.DataArray:
     """Create a grid with long-term potential yield for FAO crops."""
     yldpot = xr.full_like(lgn, np.nan, dtype=float)
 
@@ -89,14 +89,14 @@ def create_potential_yield_grid(lgn):
 
 
 def calculate_fao_yields(
-    startjaar,
-    eindjaar,
-    msw_tact,
-    msw_tpot,
-    tpot_langjarig,
-    yldpot_langjarig,
-    ky,
-):
+    startjaar: int,
+    eindjaar: int,
+    msw_tact: xr.DataArray,
+    msw_tpot: xr.DataArray,
+    tpot_langjarig: xr.DataArray,
+    yldpot_langjarig: xr.DataArray,
+    ky: xr.DataArray,
+) -> xr.Dataset:
     """Gewasopbrengst (act,pot,rel) berekenen met de FAO methode
     Actueel --> unit hangt af van de unit yldpot_langjarig
     Potentieel --> unit hangt af van de unit yldpot_langjarig
