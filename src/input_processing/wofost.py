@@ -60,6 +60,80 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from pathlib import Path
+
+import imod
+import xarray as xr
+
+WOFOST_COMPONENTS = ["stems_leaves", "storg_organs"]
+
+WOFOST_VARIABLES = [
+    "ind",
+    "act",
+    "pot",
+    "yld_act",
+    "yld_dam",
+    "yld_dam_dry",
+    "yld_dam_ind",
+    "yld_dam_salt",
+    "yld_dam_wet",
+]
+
+DAMAGE_TERMS = ["dam", "dam_dry", "dam_ind", "dam_salt", "dam_wet"]
+EXTENDED_DAMAGE_TERMS = DAMAGE_TERMS + ["schade_direct", "schade_nat"]
+
+
+def load_wofost_data(run_dir: Path, startjaar: int, eindjaar: int) -> dict:
+    """
+    Load WOFOST model output for all required variables and crop components.
+
+    Parameters
+    ----------
+    run_dir : Path
+        Directory containing the MetaSWAP/WOFOST model output.
+    startjaar : int
+        First year to load.
+    eindjaar : int
+        Last year to load.
+
+    Returns
+    -------
+    dict
+        Nested dictionary containing WOFOST output by variable
+        and crop component.
+    """
+
+    wofost_data = {}
+    for variable in WOFOST_VARIABLES:
+        wofost_data[variable] = {}
+
+        for component in WOFOST_COMPONENTS:
+            folder = run_dir / "metaswap" / f"wof_W{component}_{variable}"
+
+            files = []
+
+            for year in range(startjaar, eindjaar + 1):
+                files.extend(
+                    sorted(
+                        folder.glob(f"wof_W{component}_{variable}_{year}????_l1.idf")
+                    )
+                )
+
+            data = imod.idf.open(files).sel(layer=1).drop("layer")
+
+            wofost_data[variable][component] = data
+
+    return wofost_data
+
+
+def select_annual_outputs(wofost_data: dict) -> dict:
+    pass
+
+
+def correct_grass_yield():
+    pass
+
+
 #################################
 ## IN TE VULLEN DOOR GEBRUIKER ##
 #################################
@@ -94,7 +168,7 @@ datums = ["31dec", "31okt"]  ## Voor gras is 31dec nodig, voor andere gewassen 3
 
 LGN_gras = [1]
 LGN_mais = [2]
-LGN_bouwland = [3, 4, 5, 6]
+LGN_bouwland = [3, 4, 5]  # , 6] 6 is overig en wordt met FAO berekend
 dvsharv = 1.75
 
 ## LGN kaart inlezen
@@ -584,223 +658,3 @@ for r in run_dirs:
             rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade/actuele_opbrengst_{str(j)}_kgha.idf",
             act_opbrengst_jr_per_gewas["totaal"].sel(time=j),
         )
-
-    ################################
-    ## Histogram maken van uitvoer ##
-    ################################
-    waardes = [-0.1, 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1]
-    percentages = [
-        "1%",
-        "2%",
-        "5%",
-        "10%",
-        "20%",
-        "30%",
-        "40%",
-        "50%",
-        "60%",
-        "70%",
-        "80%",
-        "100%",
-    ]
-    ## Tabel met schade term (kg/ha) per categorie schade percentage
-    for schade in schadetermen_uitgebreid:
-        Tabel = pd.DataFrame(columns=percentages)
-        for c in range(1, 13):
-            select_range = xr.where(
-                (schade_perc[schade] >= waardes[c - 1])
-                & (schade_perc[schade] < waardes[c]),
-                schade_kgha_per_gewas[schade]["totaal"] / aantal_jaar,
-                np.nan,
-            )
-            Tabel.loc["Gemiddeld", percentages[c - 1]] = np.nansum(select_range)
-        #     for j in range(startjaar,eindjaar+1):
-        #         select_range = xr.where((schade_perc_jaar[schade].sel(time=j)>waardes[c-1])&(schade_perc_jaar[schade].sel(time=j)<waardes[c]),schade_jr_kgha_per_gewas[schade]['totaal'].sel(time=j),np.nan)
-        #         Tabel.loc[str(j),percentages[c-1]] = np.nansum(select_range)
-        Tabel.to_csv(
-            rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade_hist/Histogram_{schade}_kgha.csv"
-        )
-        # Maak histogram van gemiddelde situatie
-        plt.bar(percentages, Tabel.loc["Gemiddeld"])
-        plt.xlabel("Percentages")
-        plt.xticks(rotation="82.5")
-        plt.ylabel("Schade (kg/ha)")
-        plt.title(rf"{schade}")
-        plt.savefig(
-            rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade_hist/Histogram_Gemiddeld_{schade}_kgha.png",
-            bbox_inches="tight",
-            color="blue",
-        )
-        plt.close()
-    ## Tabel met areaal per categorie schade percentage
-    for schade in schadetermen_uitgebreid:
-        Tabel = pd.DataFrame(columns=percentages)
-        for c in range(1, 13):
-            select_range = xr.where(
-                (schade_perc[schade] >= waardes[c - 1])
-                & (schade_perc[schade] < waardes[c]),
-                areaal,
-                np.nan,
-            )
-            Tabel.loc["Gemiddeld", percentages[c - 1]] = np.nansum(select_range)
-        #     for j in range(startjaar,eindjaar+1):
-        #         select_range = xr.where((schade_perc_jaar[schade].sel(time=j)>waardes[c-1])&(schade_perc_jaar[schade].sel(time=j)<waardes[c]),areaal,np.nan)
-        #         Tabel.loc[str(j),percentages[c-1]] = np.nansum(select_range)
-        Tabel.to_csv(
-            rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade_hist/Histogram_{schade}_areaal.csv"
-        )
-        # Maak histogram van gemiddelde situatie
-        plt.bar(percentages, Tabel.loc["Gemiddeld"])
-        plt.xlabel("Percentages")
-        plt.xticks(rotation="82.5")
-        plt.ylabel("Schade (kg/ha)")
-        plt.title(rf"{schade}")
-        plt.savefig(
-            rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade_hist/Histogram_Gemiddeld_{schade}_areaal.png",
-            bbox_inches="tight",
-            color="blue",
-        )
-        plt.close()
-    ###################
-    ## Figuren maken ##
-    ###################
-
-    ## Referentieopbrengst
-    fig, ax = imod.visualize.spatial.plot_map(
-        ref_opbrengst_per_gewas["totaal"] / aantal_jaar,
-        leg_opbrengst[0],
-        leg_opbrengst[1],
-        overlays,
-        figsize=(10, 10),
-    )
-    ax.set_title(f"Referentieopbrengst {startjaar}-{eindjaar}")
-    ax.set_axis_off()
-    fig.savefig(
-        rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade/referentieopbrengst_{startjaar}_{eindjaar}_kgha.png",
-        dpi=150,
-        bbox_inches="tight",
-    )
-    plt.close()
-
-    for j in range(startjaar, eindjaar + 1):
-        fig, ax = imod.visualize.spatial.plot_map(
-            ref_opbrengst_jr_per_gewas["totaal"].sel(time=j),
-            leg_opbrengst[0],
-            leg_opbrengst[1],
-            overlays,
-            figsize=(10, 10),
-        )
-        ax.set_title(f"Referentieopbrengst {str(j)}")
-        ax.set_axis_off()
-        fig.savefig(
-            rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade/referentieopbrengst_{str(j)}_kgha.png",
-            dpi=150,
-            bbox_inches="tight",
-        )
-        plt.close()
-
-    ## Schadepercentages
-    for schade in schadetermen_uitgebreid:
-        fig, ax = imod.visualize.spatial.plot_map(
-            schade_perc[schade],
-            leg_fractie[0],
-            leg_fractie[1],
-            overlays,
-            figsize=(10, 10),
-        )
-        ax.set_title(f"Schadefractie {schade} {startjaar}-{eindjaar}")
-        ax.set_axis_off()
-        fig.savefig(
-            rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade/{schade}_{startjaar}_{eindjaar}_perc.png",
-            dpi=150,
-            bbox_inches="tight",
-        )
-        plt.close()
-
-    for j in range(startjaar, eindjaar + 1):
-        for schade in schadetermen_uitgebreid:
-            fig, ax = imod.visualize.spatial.plot_map(
-                schade_perc_jaar[schade].sel(time=j),
-                leg_fractie[0],
-                leg_fractie[1],
-                overlays,
-                figsize=(10, 10),
-            )
-            ax.set_title(f"Schadefractie {schade} {str(j)}")
-            ax.set_axis_off()
-            fig.savefig(
-                rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade/{schade}_{str(j)}_perc.png",
-                dpi=150,
-                bbox_inches="tight",
-            )
-            plt.close()
-
-    ## Schades (kg/ha)
-    for schade in schadetermen_uitgebreid:
-        fig, ax = imod.visualize.spatial.plot_map(
-            schade_kgha_per_gewas[schade]["totaal"] / aantal_jaar,
-            leg_schade[0],
-            leg_schade[1],
-            overlays,
-            figsize=(10, 10),
-        )
-        ax.set_title(f"{schade} {startjaar}-{eindjaar} [kg/ha]")
-        ax.set_axis_off()
-        fig.savefig(
-            rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade/{schade}_{startjaar}_{eindjaar}_kgha.png",
-            dpi=150,
-            bbox_inches="tight",
-        )
-        plt.close()
-
-    for j in range(startjaar, eindjaar + 1):
-        for schade in schadetermen_uitgebreid:
-            fig, ax = imod.visualize.spatial.plot_map(
-                schade_jr_kgha_per_gewas[schade]["totaal"].sel(time=j),
-                leg_schade[0],
-                leg_schade[1],
-                overlays,
-                figsize=(10, 10),
-            )
-            ax.set_title(f"{schade} {str(j)} [kg/ha]")
-            ax.set_axis_off()
-            fig.savefig(
-                rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade/{schade}_{str(j)}_kgha.png",
-                dpi=150,
-                bbox_inches="tight",
-            )
-            plt.close()
-
-    ## Actuele opbrengst
-    fig, ax = imod.visualize.spatial.plot_map(
-        act_opbrengst_per_gewas["totaal"] / aantal_jaar,
-        leg_opbrengst[0],
-        leg_opbrengst[1],
-        overlays,
-        figsize=(10, 10),
-    )
-    ax.set_title(f"Actuele opbrengst {startjaar}-{eindjaar}")
-    ax.set_axis_off()
-    fig.savefig(
-        rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade/actuele_opbrengst_{startjaar}_{eindjaar}_kgha.png",
-        dpi=150,
-        bbox_inches="tight",
-    )
-    plt.close()
-
-    for j in range(startjaar, eindjaar + 1):
-        fig, ax = imod.visualize.spatial.plot_map(
-            act_opbrengst_jr_per_gewas["totaal"].sel(time=j),
-            leg_opbrengst[0],
-            leg_opbrengst[1],
-            overlays,
-            figsize=(10, 10),
-        )
-        ax.set_title(f"Actuele opbrengst {str(j)}")
-        ax.set_axis_off()
-        fig.savefig(
-            rf"{r}/postprocessing_{startjaar}_{eindjaar}/Landbouwschade/actuele_opbrengst_{str(j)}_kgha.png",
-            dpi=150,
-            bbox_inches="tight",
-        )
-        plt.close()
