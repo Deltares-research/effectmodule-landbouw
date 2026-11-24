@@ -2,6 +2,14 @@ from pathlib import Path
 
 import imod
 
+from input_processing.wofost import (
+    DAMAGE_TERMS,
+    GRASS_STUBBLE_KG_HA,
+    correct_grass_yield,
+    load_wofost_data,
+    select_annual_outputs,
+)
+
 
 def main() -> None:
     """Prepare WOFOST yield inputs for the Effectmodule Landbouw."""
@@ -23,8 +31,12 @@ def main() -> None:
     # load land use
     lgn = imod.idf.open(lgn_path)
 
+    wofost_data = load_wofost_data(run_dir, startjaar, eindjaar)
+    annual_outputs = select_annual_outputs(wofost_data)
+    corrected_annual_outputs = correct_grass_yield(
+        annual_outputs, stubble_yield=GRASS_STUBBLE_KG_HA, damage_terms=DAMAGE_TERMS
+    )
 
-    pass
 
 if __name__ == "__main__":
     main()
