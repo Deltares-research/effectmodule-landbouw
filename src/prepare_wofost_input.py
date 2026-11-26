@@ -4,10 +4,15 @@ import imod
 
 from input_processing.wofost import (
     DAMAGE_TERMS,
+    EXTENDED_DAMAGE_TERMS,
     GRASS_STUBBLE_KG_HA,
+    add_direct_and_wet_damage,
+    calculate_all_damage_kg_ha,
     correct_grass_yield,
     load_wofost_data,
     select_annual_outputs,
+    set_annual_maximum_yields,
+    sum_outputs_over_time,
 )
 
 
@@ -33,8 +38,22 @@ def main() -> None:
 
     wofost_data = load_wofost_data(run_dir, startjaar, eindjaar)
     annual_outputs = select_annual_outputs(wofost_data)
-    corrected_annual_outputs = correct_grass_yield(
+    annual_outputs = correct_grass_yield(
         annual_outputs, stubble_yield=GRASS_STUBBLE_KG_HA, damage_terms=DAMAGE_TERMS
+    )
+    annual_outputs = set_annual_maximum_yields(
+        wofost_data, annual_outputs, startjaar, eindjaar
+    )
+    annual_outputs = add_direct_and_wet_damage(annual_outputs)
+
+    damage_kg_ha = calculate_all_damage_kg_ha(
+        annual_outputs, damage_terms=EXTENDED_DAMAGE_TERMS
+    )
+
+    summed_outputs = sum_outputs_over_time(
+        annual_outputs=annual_outputs,
+        damage_kg_ha=damage_kg_ha,
+        damage_terms=EXTENDED_DAMAGE_TERMS,
     )
 
 

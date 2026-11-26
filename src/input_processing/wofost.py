@@ -262,6 +262,239 @@ def correct_grass_yield(
     return annual_outputs
 
 
+def set_annual_maximum_yields(
+    wofost_data: dict,
+    annual_outputs: dict,
+    start_year: int,
+    end_year: int,
+) -> dict:
+    """
+    Replace year-end actual and reference yields with annual maxima.
+
+    For each year and WOFOST crop component, the maximum value of
+    'act' and 'ind' over the complete year is assigned to the
+    non-grass annual output.
+
+    Grass is not modified because grass uses the 31 October output.
+
+    Parameters
+    ----------
+    wofost_data : dict
+        Full WOFOST time series by variable and crop component.
+    annual_outputs : dict
+        Annual WOFOST outputs created by select_annual_outputs().
+    start_year : int
+        First year to process.
+    end_year : int
+        Last year to process.
+
+    Returns
+    -------
+    dict
+        Annual WOFOST outputs with annual maxima assigned to
+        'act' and 'ind' for non-grass crops.
+    """
+    for year in range(start_year, end_year + 1):
+        for component in WOFOST_COMPONENTS:
+            data_act = wofost_data["act"][component][
+                wofost_data["act"][component]["time.year"] == year
+            ]
+
+            data_ind = wofost_data["ind"][component][
+                wofost_data["ind"][component]["time.year"] == year
+            ]
+
+            annual_outputs["act"][component]["other_crops"][
+                annual_outputs["act"][component]["other_crops"]["time.year"] == year
+            ] = data_act.max(dim="time")
+
+            annual_outputs["ind"][component]["other_crops"][
+                annual_outputs["ind"][component]["other_crops"]["time.year"] == year
+            ] = data_ind.max(dim="time")
+
+    return annual_outputs
+
+
+def add_direct_and_wet_damage(
+    annual_outputs: dict,
+) -> dict:
+    """
+    Add derived direct and wet damage percentages.
+
+    Direct damage is the sum of drought, wet, and salt damage.
+    Wet-related damage is the sum of indirect and wet damage.
+
+    Parameters
+    ----------
+    annual_outputs : dict
+        Annual WOFOST outputs by variable, crop component,
+        and crop group.
+
+    Returns
+    -------
+    dict
+        Annual outputs including the derived damage terms.
+    """
+    annual_outputs["yld_schade_direct"] = {}
+    annual_outputs["yld_schade_nat"] = {}
+
+    for component in WOFOST_COMPONENTS:
+        annual_outputs["yld_schade_direct"][component] = {}
+        annual_outputs["yld_schade_nat"][component] = {}
+
+        for crop_group in ["grass", "other_crops"]:
+            annual_outputs["yld_schade_direct"][component][crop_group] = (
+                annual_outputs["yld_dam_dry"][component][crop_group]
+                + annual_outputs["yld_dam_wet"][component][crop_group]
+                + annual_outputs["yld_dam_salt"][component][crop_group]
+            )
+
+            annual_outputs["yld_schade_nat"][component][crop_group] = (
+                annual_outputs["yld_dam_ind"][component][crop_group]
+                + annual_outputs["yld_dam_wet"][component][crop_group]
+            )
+
+    return annual_outputs
+
+
+def calculate_damage_kg_ha(
+    reference_yield: xr.DataArray,
+    damage_percentage: xr.DataArray,
+) -> xr.DataArray:
+    """
+    Calculate crop damage in kg/ha.
+
+    Parameters
+    ----------
+    reference_yield : xr.DataArray
+        Reference crop yield in kg/ha.
+    damage_percentage : xr.DataArray
+        Crop damage as a percentage of reference yield.
+
+    Returns
+    -------
+    xr.DataArray
+        Crop damage in kg/ha.
+    """
+    damage_kg_ha = reference_yield * damage_percentage / 100
+
+    return damage_kg_ha
+
+
+def calculate_all_damage_kg_ha(
+    annual_outputs: dict,
+    damage_terms: list[str],
+) -> dict:
+    """
+    Calculate all WOFOST damage terms in kg/ha.
+
+    Damage is calculated for every damage term, WOFOST crop
+    component, and crop group.
+
+    Parameters
+    ----------
+    annual_outputs : dict
+        Annual WOFOST outputs containing reference yield and
+        damage percentages.
+    damage_terms : list[str]
+        Damage terms to convert from percentages to kg/ha.
+
+    Returns
+    -------
+    dict
+        Nested dictionary containing damage in kg/ha by
+        damage term, WOFOST component, and crop group.
+    """
+    damage_kg_ha = {}
+
+    for damage_term in damage_terms:
+        damage_kg_ha[damage_term] = {}
+
+        for component in WOFOST_COMPONENTS:
+            damage_kg_ha[damage_term][component] = {}
+
+            for crop_group in [
+                "grass",
+                "other_crops",
+            ]:
+                reference_yield = annual_outputs["ind"][component][crop_group]
+
+                damage_percentage = annual_outputs[f"yld_{damage_term}"][component][
+                    crop_group
+                ]
+
+                damage_kg_ha[damage_term][component][crop_group] = (
+                    calculate_damage_kg_ha(
+                        reference_yield=reference_yield,
+                        damage_percentage=damage_percentage,
+                    )
+                )
+
+    return damage_kg_ha
+
+
+def sum_outputs_over_time(
+    annual_outputs: dict,
+    damage_kg_ha: dict,
+    damage_terms: list[str],
+) -> dict:
+    """
+    Sum annual WOFOST yield and damage outputs over time.
+
+    Parameters
+    ----------
+    annual_outputs : dict
+        Annual WOFOST outputs by variable, component, and crop group.
+    damage_kg_ha : dict
+        Damage in kg/ha by damage term, component, and crop group.
+    damage_terms : list[str]
+        Damage terms to aggregate.
+
+    Returns
+    -------
+    dict
+        Time-summed reference yield, actual yield, WOFOST actual
+        biomass, and damage in kg/ha.
+    """
+    summed_outputs = {
+        "reference_yield": {},
+        "actual_yield": {},
+        "actual_biomass": {},
+        "damage_kg_ha": {},
+    }
+
+    for component in WOFOST_COMPONENTS:
+        summed_outputs["reference_yield"][component] = {}
+        summed_outputs["actual_yield"][component] = {}
+        summed_outputs["actual_biomass"][component] = {}
+
+        for crop_group in ["grass", "other_crops"]:
+            summed_outputs["reference_yield"][component][crop_group] = annual_outputs[
+                "ind"
+            ][component][crop_group].sum("time")
+
+            summed_outputs["actual_yield"][component][crop_group] = annual_outputs[
+                "yld_act"
+            ][component][crop_group].sum("time")
+
+            summed_outputs["actual_biomass"][component][crop_group] = annual_outputs[
+                "act"
+            ][component][crop_group].sum("time")
+
+    for damage_term in damage_terms:
+        summed_outputs["damage_kg_ha"][damage_term] = {}
+
+        for component in WOFOST_COMPONENTS:
+            summed_outputs["damage_kg_ha"][damage_term][component] = {}
+
+            for crop_group in ["grass", "other_crops"]:
+                summed_outputs["damage_kg_ha"][damage_term][component][crop_group] = (
+                    damage_kg_ha[damage_term][component][crop_group].sum("time")
+                )
+
+    return summed_outputs
+
+
 if __name__ == "__main__":
     #################################
     ## IN TE VULLEN DOOR GEBRUIKER ##
