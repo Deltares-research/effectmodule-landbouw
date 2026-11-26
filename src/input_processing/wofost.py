@@ -86,6 +86,10 @@ GRASS_STUBBLE_KG_HA = (
     700  # kg droge stof per ha, komt uit wofost .crp file, de TAGPREST variabele
 )
 
+LGN_GRAS = [1]
+LGN_MAIS = [2]
+LGN_BOUWLAND = [3, 4, 5]  # , 6] 6 is overig en wordt met FAO berekend
+
 
 def load_wofost_data(run_dir: Path, startjaar: int, eindjaar: int) -> dict:
     """
@@ -493,6 +497,251 @@ def sum_outputs_over_time(
                 )
 
     return summed_outputs
+
+
+def combine_outputs_by_crop(
+    outputs: dict,
+    lgn: xr.DataArray,
+    damage_terms: list[str],
+) -> dict:
+    """
+    Combine WOFOST component outputs into crop-specific raster outputs.
+
+    Arable crops use storage-organ output, maize uses the sum of
+    storage organs and stems/leaves, and grass uses stems/leaves.
+    Crop-specific outputs are combined using the LGN crop classes.
+
+    Parameters
+    ----------
+    summed_outputs : dict
+        Time-summed WOFOST outputs by component and crop group.
+    lgn : xr.DataArray
+        LGN land-use raster aligned with the WOFOST output grid.
+    damage_terms : list[str]
+        Damage terms to combine by crop.
+
+    Returns
+    -------
+    dict
+        Combined reference yield, actual yield, and damage in kg/ha.
+    """
+    combined_outputs = {
+        "reference_yield": {},
+        "actual_yield": {},
+        "damage_kg_ha": {},
+    }
+
+    # Reference yield
+    combined_outputs["reference_yield"]["arable"] = outputs["reference_yield"][
+        "storg_organs"
+    ]["other_crops"]
+
+    combined_outputs["reference_yield"]["maize"] = (
+        outputs["reference_yield"]["storg_organs"]["other_crops"]
+        + outputs["reference_yield"]["stems_leaves"]["other_crops"]
+    )
+
+    combined_outputs["reference_yield"]["grass"] = outputs["reference_yield"][
+        "stems_leaves"
+    ]["grass"]
+
+    combined_outputs["reference_yield"]["total"] = (
+        combined_outputs["reference_yield"]["arable"].where(
+            lgn.isin(LGN_BOUWLAND),
+            0,
+        )
+        + combined_outputs["reference_yield"]["maize"].where(
+            lgn.isin(LGN_MAIS),
+            0,
+        )
+        + combined_outputs["reference_yield"]["grass"].where(
+            lgn.isin(LGN_GRAS),
+            0,
+        )
+    )
+
+    # Actual yield
+    combined_outputs["actual_yield"]["arable"] = outputs["actual_biomass"][
+        "storg_organs"
+    ]["other_crops"]
+
+    combined_outputs["actual_yield"]["maize"] = (
+        outputs["actual_biomass"]["storg_organs"]["other_crops"]
+        + outputs["actual_biomass"]["stems_leaves"]["other_crops"]
+    )
+
+    # Grass deliberately uses yld_act instead of act.
+    combined_outputs["actual_yield"]["grass"] = outputs["actual_yield"][
+        "stems_leaves"
+    ]["grass"]
+
+    combined_outputs["actual_yield"]["total"] = (
+        combined_outputs["actual_yield"]["arable"].where(
+            lgn.isin(LGN_BOUWLAND),
+            0,
+        )
+        + combined_outputs["actual_yield"]["maize"].where(
+            lgn.isin(LGN_MAIS),
+            0,
+        )
+        + combined_outputs["actual_yield"]["grass"].where(
+            lgn.isin(LGN_GRAS),
+            0,
+        )
+    )
+
+    # Damage
+    for damage_term in damage_terms:
+        combined_outputs["damage_kg_ha"][damage_term] = {}
+
+        combined_outputs["damage_kg_ha"][damage_term]["arable"] = outputs[
+            "damage_kg_ha"
+        ][damage_term]["storg_organs"]["other_crops"]
+
+        combined_outputs["damage_kg_ha"][damage_term]["maize"] = (
+            outputs["damage_kg_ha"][damage_term]["storg_organs"]["other_crops"]
+            + outputs["damage_kg_ha"][damage_term]["stems_leaves"]["other_crops"]
+        )
+
+        combined_outputs["damage_kg_ha"][damage_term]["grass"] = outputs[
+            "damage_kg_ha"
+        ][damage_term]["stems_leaves"]["grass"]
+
+        combined_outputs["damage_kg_ha"][damage_term]["total"] = (
+            combined_outputs["damage_kg_ha"][damage_term]["arable"].where(
+                lgn.isin(LGN_BOUWLAND),
+                0,
+            )
+            + combined_outputs["damage_kg_ha"][damage_term]["maize"].where(
+                lgn.isin(LGN_MAIS),
+                0,
+            )
+            + combined_outputs["damage_kg_ha"][damage_term]["grass"].where(
+                lgn.isin(LGN_GRAS),
+                0,
+            )
+        )
+
+    return combined_outputs
+
+
+def assign_year_coordinate(
+    data: xr.DataArray,
+) -> xr.DataArray:
+    """
+    Replace the datetime coordinate with integer calendar years.
+
+    Parameters
+    ----------
+    data : xr.DataArray
+        Data with a datetime-based time coordinate.
+
+    Returns
+    -------
+    xr.DataArray
+        Data with the time coordinate expressed as integer years.
+    """
+    return data.assign_coords(time=data.time.dt.year)
+
+
+def prepare_annual_outputs_by_year(
+    annual_outputs: dict,
+    damage_kg_ha: dict,
+    damage_terms: list[str],
+) -> dict:
+    """
+    Prepare annual WOFOST outputs for crop combination.
+
+    October and December timestamps are replaced with calendar years
+    so grass and other-crop outputs can be aligned and combined.
+
+    Parameters
+    ----------
+    annual_outputs : dict
+        Annual WOFOST outputs by variable, component, and crop group.
+    damage_kg_ha : dict
+        Annual damage in kg/ha by damage term, component, and crop group.
+    damage_terms : list[str]
+        Damage terms to prepare.
+
+    Returns
+    -------
+    dict
+        Annual reference yield, actual yield, actual biomass, and
+        damage, retaining the time dimension as integer years.
+    """
+    yearly_outputs = {
+        "reference_yield": {},
+        "actual_yield": {},
+        "actual_biomass": {},
+        "damage_kg_ha": {},
+    }
+
+    for component in WOFOST_COMPONENTS:
+        yearly_outputs["reference_yield"][component] = {}
+        yearly_outputs["actual_yield"][component] = {}
+        yearly_outputs["actual_biomass"][component] = {}
+
+        for crop_group in ["grass", "other_crops"]:
+            yearly_outputs["reference_yield"][component][crop_group] = (
+                assign_year_coordinate(annual_outputs["ind"][component][crop_group])
+            )
+
+            yearly_outputs["actual_yield"][component][crop_group] = (
+                assign_year_coordinate(annual_outputs["yld_act"][component][crop_group])
+            )
+
+            yearly_outputs["actual_biomass"][component][crop_group] = (
+                assign_year_coordinate(annual_outputs["act"][component][crop_group])
+            )
+
+    for damage_term in damage_terms:
+        yearly_outputs["damage_kg_ha"][damage_term] = {}
+
+        for component in WOFOST_COMPONENTS:
+            yearly_outputs["damage_kg_ha"][damage_term][component] = {}
+
+            for crop_group in ["grass", "other_crops"]:
+                yearly_outputs["damage_kg_ha"][damage_term][component][crop_group] = (
+                    assign_year_coordinate(
+                        damage_kg_ha[damage_term][component][crop_group]
+                    )
+                )
+
+    return yearly_outputs
+
+
+def calculate_damage_fractions(
+    combined_outputs: dict,
+    damage_terms: list[str],
+) -> dict:
+    """
+    Calculate crop damage as a fraction of reference yield.
+
+    Parameters
+    ----------
+    combined_outputs : dict
+        Combined WOFOST crop outputs containing reference yield
+        and damage in kg/ha.
+    damage_terms : list[str]
+        Damage terms to calculate.
+
+    Returns
+    -------
+    dict
+        Damage fraction for each damage term.
+    """
+    damage_fractions = {}
+
+    reference_yield = combined_outputs["reference_yield"]["total"]
+
+    for damage_term in damage_terms:
+        damage_fractions[damage_term] = (
+            combined_outputs["damage_kg_ha"][damage_term]["total"] / reference_yield
+        )
+
+    return damage_fractions
+
 
 
 if __name__ == "__main__":
