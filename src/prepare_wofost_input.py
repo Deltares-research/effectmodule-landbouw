@@ -121,6 +121,7 @@ def main() -> None:
 
     number_of_years = eindjaar - startjaar + 1
 
+    ## Referentieopbrengst (kg/ha)
     imod.idf.write(
         output_folder / f"referentieopbrengst_{startjaar}_{eindjaar}_kgha.idf",
         (combined_summed_outputs["reference_yield"]["total"] / number_of_years),
@@ -135,6 +136,7 @@ def main() -> None:
         unit="kgha",
     )
 
+    ## Actuele opbrengst (kg/ha)
     imod.idf.write(
         output_folder / f"actuele_opbrengst_{startjaar}_{eindjaar}_kgha.idf",
         (combined_summed_outputs["actual_yield"]["total"] / number_of_years),
@@ -149,6 +151,7 @@ def main() -> None:
         unit="kgha",
     )
 
+    ## Schades (kg/ha)
     for damage_term in EXTENDED_DAMAGE_TERMS:
         imod.idf.write(
             output_folder / (f"{damage_term}_" f"{startjaar}_{eindjaar}_kgha.idf"),
@@ -167,6 +170,7 @@ def main() -> None:
             unit="kgha",
         )
 
+    ## Schadepercentages
     for damage_term in EXTENDED_DAMAGE_TERMS:
         imod.idf.write(
             output_folder / (f"{damage_term}_" f"{startjaar}_{eindjaar}_perc.idf"),
